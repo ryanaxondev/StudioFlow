@@ -1,0 +1,43 @@
+{
+  "name": "studioflow",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "pnpm build:web && pnpm build:worker",
+    "start": "next start",
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --write --ignore-unknown .",
+    "test": "node --conditions=react-server --import=tsx --test tests/**/*.test.ts",
+    "dev:worker": "tsx worker/index.ts",
+    "format:check": "prettier --check --ignore-unknown .",
+    "build:web": "next build",
+    "build:worker": "tsc -p tsconfig.worker.json",
+    "start:worker": "node dist/worker/worker/index.js"
+  },
+  "dependencies": {
+    "next": "16.2.11",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "server-only": "^0.0.1",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^24.13.3",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.11",
+    "prettier": "3.9.6",
+    "tailwindcss": "^4",
+    "tsx": "^4.23.1",
+    "typescript": "^5"
+  },
+  "packageManager": "pnpm@11.18.0",
+  "engines": {
+    "node": ">=24.18.0 <25",
+    "pnpm": "11.18.0"
+  }
+}
