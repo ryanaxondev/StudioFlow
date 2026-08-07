@@ -1,0 +1,132 @@
+name: studioflow
+
+services:
+  postgres:
+    image: ${POSTGRES_IMAGE:-postgres:18.4-alpine3.24}
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-studioflow}
+      POSTGRES_USER: ${POSTGRES_MIGRATION_USER:-studioflow_migrator}
+      POSTGRES_PASSWORD: ${POSTGRES_MIGRATION_PASSWORD:-studioflow_migrator_dev}
+      STUDIOFLOW_APP_DB_USER: ${POSTGRES_APP_USER:-studioflow_app}
+      STUDIOFLOW_APP_DB_PASSWORD: ${POSTGRES_APP_PASSWORD:-studioflow_app_dev}
+      STUDIOFLOW_WORKER_DB_USER: ${POSTGRES_WORKER_USER:-studioflow_worker}
+      STUDIOFLOW_WORKER_DB_PASSWORD: ${POSTGRES_WORKER_PASSWORD:-studioflow_worker_dev}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql
+      - ./docker/postgres/init/10-create-roles.sh:/docker-entrypoint-initdb.d/10-create-roles.sh:ro
+    healthcheck:
+      test:
+        ["CMD-SHELL", 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    networks:
+      - private
+
+  minio:
+    image: ${MINIO_IMAGE:-quay.io/minio/minio:latest}
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-studioflow}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-studioflow_minio_dev}
+    ports:
+      - "127.0.0.1:${MINIO_API_PORT:-9000}:9000"
+      - "127.0.0.1:${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    networks:
+      - private
+
+  minio-init:
+    image: ${MINIO_MC_IMAGE:-quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z}
+    restart: "no"
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-studioflow}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-studioflow_minio_dev}
+      MINIO_BUCKET: ${MINIO_BUCKET:-studioflow-local}
+    volumes:
+      - ./docker/minio/init-bucket.sh:/usr/local/bin/init-bucket.sh:ro
+    entrypoint: ["/bin/sh", "/usr/local/bin/init-bucket.sh"]
+    networks:
+      - private
+
+  mailpit:
+    image: ${MAILPIT_IMAGE:-axllent/mailpit:v1.30.1}
+    restart: unless-stopped
+    environment:
+      MP_DATABASE: /data/mailpit.db
+      MP_MAX_MESSAGES: ${MAILPIT_MAX_MESSAGES:-1000}
+    ports:
+      - "127.0.0.1:${MAILPIT_SMTP_PORT:-1025}:1025"
+      - "127.0.0.1:${MAILPIT_UI_PORT:-8025}:8025"
+    volumes:
+      - mailpit-data:/data
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
+    networks:
+      - private
+
+  clamav:
+    image: ${CLAMAV_IMAGE:-clamav/clamav:1.5.3-debian13-slim}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${CLAMAV_PORT:-3310}:3310"
+    volumes:
+      - clamav-signatures:/var/lib/clamav
+    healthcheck:
+      test: ["CMD", "clamdscan", "--ping", "20:1"]
+      interval: 15s
+      timeout: 10s
+      retries: 8
+      start_period: 45s
+    networks:
+      - private
+
+  smoke-tools:
+    image: ${SMOKE_TOOLS_IMAGE:-busybox:1.37.0}
+    profiles: ["tools"]
+    entrypoint: ["/bin/sh"]
+    networks:
+      - private
+
+  adminer:
+    image: ${ADMINER_IMAGE:-adminer:5.5.0-standalone}
+    profiles: ["db-admin"]
+    restart: unless-stopped
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+    ports:
+      - "127.0.0.1:${ADMINER_PORT:-8080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - private
+
+volumes:
+  postgres-data:
+  minio-data:
+  mailpit-data:
+  clamav-signatures:
+
+networks:
+  private:
+    driver: bridge

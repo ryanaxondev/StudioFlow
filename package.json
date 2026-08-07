@@ -14,7 +14,16 @@
     "format:check": "prettier --check --ignore-unknown .",
     "build:web": "next build",
     "build:worker": "tsc -p tsconfig.worker.json",
-    "start:worker": "node dist/worker/worker/index.js"
+    "start:worker": "node dist/worker/worker/index.js",
+    "infra:config": "docker compose config --quiet",
+    "infra:up": "bash scripts/infra/up.sh",
+    "infra:down": "docker compose down",
+    "infra:reset": "docker compose down -v --remove-orphans",
+    "infra:status": "docker compose ps",
+    "infra:logs": "docker compose logs -f --tail=100 postgres minio mailpit clamav",
+    "infra:smoke": "bash scripts/infra/smoke.sh",
+    "infra:test:persistence": "bash scripts/infra/persistence.sh",
+    "infra:admin": "docker compose --profile db-admin up -d adminer"
   },
   "dependencies": {
     "next": "16.2.11",
