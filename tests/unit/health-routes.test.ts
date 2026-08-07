@@ -1,5 +1,4 @@
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
+import { describe, expect, it } from "vitest";
 
 import { GET as getLiveness } from "../../src/app/api/health/live/route";
 import { GET as getReadiness } from "../../src/app/api/health/ready/route";
@@ -8,8 +7,8 @@ describe("health routes", () => {
   it("returns a successful liveness response", async () => {
     const response = getLiveness();
 
-    assert.equal(response.status, 200);
-    assert.deepEqual(await response.json(), {
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
       status: "ok",
       service: "web",
     });
@@ -23,11 +22,11 @@ describe("health routes", () => {
       environment: string;
     };
 
-    assert.equal(response.status, 200);
-    assert.equal(payload.status, "ready");
-    assert.equal(payload.service, "web");
-    assert.ok(
-      ["development", "test", "production"].includes(payload.environment),
+    expect(response.status).toBe(200);
+    expect(payload.status).toBe("ready");
+    expect(payload.service).toBe("web");
+    expect(["development", "test", "production"]).toContain(
+      payload.environment,
     );
   });
 });

@@ -32,3 +32,6 @@ AGENTS.md
 
 # TypeScript
 *.tsbuildinfo
+
+# Generated CI reports
+artifacts/

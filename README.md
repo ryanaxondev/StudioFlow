@@ -7,12 +7,13 @@ StudioFlow is a premium client-delivery platform for boutique web design and dev
 - Product: `docs/product/`
 - Engineering: `docs/engineering/`
 - Local development: `docs/engineering/02-local-development.md`
+- Testing and CI: `docs/engineering/03-testing-and-ci.md`
 
 ## Roadmap
 
 Implementation follows `M00 → M01 → ... → M24` as defined in `docs/engineering/01-implementation-roadmap.md`.
 
-Current milestone: **M02 — Local Infrastructure**
+Current milestone: **M03 — CI and Test Harness**
 
 ## Application
 
@@ -23,15 +24,20 @@ pnpm dev:worker
 
 ## Local infrastructure
 
-Start all required local services with:
-
 ```bash
 pnpm infra:up
-```
-
-Validate them with:
-
-```bash
 pnpm infra:smoke
 pnpm infra:test:persistence
 ```
+
+## Quality checks
+
+```bash
+pnpm format:check
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm build
+```
+
+Database and browser gates are documented in `docs/engineering/03-testing-and-ci.md`.

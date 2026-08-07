@@ -1,5 +1,4 @@
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
+import { describe, expect, it } from "vitest";
 
 import { parseServerEnvironment } from "../../src/lib/env-schema";
 
@@ -7,8 +6,8 @@ describe("server environment schema", () => {
   it("applies safe defaults", () => {
     const environment = parseServerEnvironment({});
 
-    assert.equal(environment.NODE_ENV, "development");
-    assert.equal(environment.LOG_LEVEL, "info");
+    expect(environment.NODE_ENV).toBe("development");
+    expect(environment.LOG_LEVEL).toBe("info");
   });
 
   it("accepts valid values", () => {
@@ -17,16 +16,16 @@ describe("server environment schema", () => {
       LOG_LEVEL: "warn",
     });
 
-    assert.equal(environment.NODE_ENV, "production");
-    assert.equal(environment.LOG_LEVEL, "warn");
+    expect(environment.NODE_ENV).toBe("production");
+    expect(environment.LOG_LEVEL).toBe("warn");
   });
 
   it("rejects invalid values", () => {
-    assert.throws(() =>
+    expect(() =>
       parseServerEnvironment({
         NODE_ENV: "production",
         LOG_LEVEL: "verbose",
       }),
-    );
+    ).toThrow();
   });
 });
