@@ -2,6 +2,7 @@ import { readdir } from "node:fs/promises";
 import { resolve } from "node:path";
 
 const migrationsDirectory = resolve(process.cwd(), "src/db/migrations");
+const implementedMigrationCount = 3;
 const approvedNames = [
   "0001_extensions_and_system.sql",
   "0002_identity_foundation.sql",
@@ -29,6 +30,12 @@ const files = entries
   .filter((entry) => entry.isFile() && entry.name.endsWith(".sql"))
   .map((entry) => entry.name)
   .sort();
+
+if (files.length !== implementedMigrationCount) {
+  throw new Error(
+    `M04 requires exactly ${implementedMigrationCount} release migrations; found ${files.length}.`,
+  );
+}
 
 const migrationPattern = /^(\d{4})_[a-z0-9_]+\.sql$/;
 const seenNumbers = new Set();
@@ -63,7 +70,5 @@ for (const [index, file] of files.entries()) {
 }
 
 console.log(
-  files.length === 0
-    ? "Migration validation passed: no migrations introduced before M04."
-    : `Migration validation passed: ${files.length} migration(s) are contiguous and valid.`,
+  `Migration validation passed: ${files.length} M04 migration(s) are contiguous and valid.`,
 );

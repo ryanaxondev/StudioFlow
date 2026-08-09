@@ -13,6 +13,9 @@ const imageReviewBudget = 300 * 1024;
 const host = "127.0.0.1";
 const port = Number(process.env.BUNDLE_REPORT_PORT ?? 3210);
 const baseUrl = `http://${host}:${port}`;
+const bundleReportDatabaseUrl =
+  process.env.DATABASE_URL ??
+  "postgresql://bundle_report:bundle_report@127.0.0.1:5432/studioflow_bundle_report";
 
 // M03 has no Product routes yet. Add concrete routes here as P0 Screens land.
 // The Image Review allowance is reserved now so the CI contract is stable.
@@ -170,6 +173,7 @@ const server = spawn(
     env: {
       ...process.env,
       NODE_ENV: "production",
+      DATABASE_URL: bundleReportDatabaseUrl,
       NEXT_TELEMETRY_DISABLED: "1",
     },
     stdio: ["ignore", "pipe", "pipe"],

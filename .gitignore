@@ -35,3 +35,6 @@ AGENTS.md
 
 # Generated CI reports
 artifacts/
+
+# Drizzle review output
+.drizzle-review/

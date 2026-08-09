@@ -67,7 +67,7 @@ M03 defines future visual baselines under `tests/visual/baselines/` but adds no 
 pnpm db:migrations:validate
 ```
 
-The validator enforces contiguous numeric migration prefixes and the Approved filenames for migrations `0001` through `0019`. An empty migration directory is valid before M04.
+The validator enforces contiguous numeric migration prefixes and the Approved filenames for migrations `0001` through `0019`. M04 currently implements and permits `0001` through `0003`; later Milestones advance that ceiling only when their Approved migrations are introduced.
 
 ## Bundle budgets
 
@@ -108,3 +108,7 @@ The workflow uses Node from `.node-version`, pnpm from `packageManager`, a Postg
 ## CI failure-path check
 
 The workflow has a manual `force_static_failure` input. Run the CI workflow manually with that input enabled; the `static` job must fail. Run it again with the input disabled and require the normal jobs to pass. This validates that a deliberately failing check produces a failed CI run without committing broken source code.
+
+### Bundle-budget production runtime
+
+The bundle reporter starts a production Web process solely to measure initial browser JavaScript. When CI does not provide an application database URL, the reporter supplies a syntactically valid non-secret measurement URL. The measured `/` route and liveness endpoint do not establish a database connection. Production deployments still require the real Web `DATABASE_URL` through startup validation.

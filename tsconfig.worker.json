@@ -11,6 +11,10 @@
     "rootDir": ".",
     "plugins": []
   },
-  "include": ["worker/**/*.ts", "src/server/observability/**/*.ts"],
+  "include": [
+    "worker/**/*.ts",
+    "src/db/**/*.ts",
+    "src/server/observability/**/*.ts"
+  ],
   "exclude": ["node_modules"]
 }

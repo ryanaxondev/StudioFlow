@@ -4,7 +4,7 @@
 
 - `unit/`: pure logic and boundary tests; no network or database.
 - `integration/`: component and in-process integration tests; no shared external state.
-- `database/`: tests against a disposable PostgreSQL database created per suite.
+- `database/`: tests against disposable PostgreSQL databases; M04 suites apply the real release migrations before exercising persistence behavior.
 - `e2e/`: narrow browser smoke tests.
 - `accessibility/`: Playwright + Axe smoke tests.
 - `visual/`: screenshot conventions and, after real P0 Screens exist, approved baselines.
@@ -20,3 +20,7 @@ Factories are deterministic, return valid defaults, accept explicit overrides, a
 ## Screenshot convention
 
 Automatic failure screenshots, traces, and videos belong in ignored `test-results/`. Approved visual baselines will live under `tests/visual/baselines/<project>/<test-file>/` when real P0 Screens exist. M03 intentionally adds no visual baseline.
+
+## Migrated database convention
+
+Use `createMigratedTestDatabase()` for suites that exercise real StudioFlow persistence. It creates a uniquely named disposable database, applies the committed release migrations, exposes a pooled Drizzle client, and drops the database at teardown. `resetPublicSchemaData()` preserves `studioflow_migrations` while truncating application tables between tests.

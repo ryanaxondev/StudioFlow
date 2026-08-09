@@ -1,9 +1,6 @@
-import { logger } from "../src/server/observability/logger";
+import { startWorker } from "./runtime/start";
 
-export function startWorker(): void {
-  logger.info("worker.started", {
-    service: "worker",
-  });
-}
-
-startWorker();
+startWorker().catch((error: unknown) => {
+  console.error(error);
+  process.exitCode = 1;
+});
