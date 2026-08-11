@@ -17,6 +17,8 @@
     "src/modules/auth/email.ts",
     "src/modules/auth/email-outbox.ts",
     "src/modules/auth/environment.ts",
+    "src/modules/invitations/email.ts",
+    "src/modules/invitations/email-outbox.ts",
     "src/server/observability/**/*.ts"
   ],
   "exclude": ["node_modules"]

@@ -2,7 +2,13 @@
 
 import { useEffect } from "react";
 
-export function SessionRefresh() {
+export type SessionRefreshProps = Readonly<{
+  returnTo?: string;
+}>;
+
+export function SessionRefresh({
+  returnTo = "/account",
+}: SessionRefreshProps = {}) {
   useEffect(() => {
     const controller = new AbortController();
 
@@ -14,7 +20,9 @@ export function SessionRefresh() {
         });
 
         if (response.status === 401) {
-          window.location.assign("/access?returnTo=/account");
+          window.location.assign(
+            `/access?returnTo=${encodeURIComponent(returnTo)}`,
+          );
         }
       } catch {
         return;
@@ -24,7 +32,7 @@ export function SessionRefresh() {
     void refreshSession();
 
     return () => controller.abort();
-  }, []);
+  }, [returnTo]);
 
   return null;
 }

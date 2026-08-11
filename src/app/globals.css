@@ -199,7 +199,7 @@ main {
 }
 
 .auth-identity-list dt {
-  color: #737d89;
+  color: #66717e;
   font-size: 0.8125rem;
   font-weight: 600;
 }
@@ -207,4 +207,255 @@ main {
 .auth-identity-list dd {
   margin: 0;
   overflow-wrap: anywhere;
+}
+
+.auth-card-wide {
+  width: min(100%, 42rem);
+}
+
+.auth-invitation-summary {
+  margin-top: 1.5rem;
+}
+
+.account-context-section {
+  margin-top: 2rem;
+}
+
+.account-context-section h2,
+.management-panel h2 {
+  margin: 0 0 1rem;
+  font-size: 1rem;
+  line-height: 1.3;
+}
+
+.account-context-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.account-context-list article {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.875rem 1rem;
+  border: 1px solid #dce1e8;
+  border-radius: 0.625rem;
+}
+
+.account-context-list span,
+.management-muted,
+.management-row span,
+.management-header p {
+  color: #66717e;
+  font-size: 0.875rem;
+}
+
+.management-shell {
+  width: min(100%, 72rem);
+  margin: 0 auto;
+  padding: 2rem 1rem 4rem;
+}
+
+.management-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid #dce1e8;
+}
+
+.management-header h1 {
+  margin: 0;
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  letter-spacing: -0.03em;
+}
+
+.management-header p {
+  margin: 0.5rem 0 0;
+}
+
+.management-header nav,
+.management-contexts,
+.management-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.management-header nav a,
+.management-contexts a {
+  color: #3547b8;
+  font-weight: 600;
+  text-underline-offset: 0.2em;
+}
+
+.management-contexts {
+  margin-top: 1rem;
+}
+
+.management-contexts a[aria-current="page"] {
+  color: #171c23;
+  text-decoration: none;
+}
+
+.management-stack {
+  display: grid;
+  gap: 1.25rem;
+  margin-top: 1.25rem;
+}
+
+.management-panel {
+  margin-top: 1.25rem;
+  padding: 1.25rem;
+  border: 1px solid #dce1e8;
+  border-radius: 0.875rem;
+  background: #ffffff;
+}
+
+.management-stack .management-panel {
+  margin-top: 0;
+}
+
+.management-form {
+  display: grid;
+  gap: 0.875rem;
+}
+
+.management-form label {
+  display: grid;
+  gap: 0.4rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.management-form input,
+.management-form select,
+.management-role-form select {
+  min-height: 2.625rem;
+  width: 100%;
+  border: 1px solid #dce1e8;
+  border-radius: 0.625rem;
+  background: #ffffff;
+  padding: 0.6rem 0.75rem;
+  color: #171c23;
+  font: inherit;
+}
+
+.management-role-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.management-role-form select {
+  width: auto;
+  min-width: 10rem;
+  flex: 1;
+}
+
+.management-primary,
+.management-secondary {
+  min-height: 2.625rem;
+  border-radius: 0.625rem;
+  padding: 0.6rem 0.9rem;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.management-primary {
+  border: 1px solid #4256d0;
+  background: #4256d0;
+  color: #ffffff;
+}
+
+.management-secondary {
+  border: 1px solid #dce1e8;
+  background: #ffffff;
+  color: #171c23;
+}
+
+.management-primary:disabled,
+.management-secondary:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.management-primary:focus-visible,
+.management-secondary:focus-visible,
+.management-form input:focus-visible,
+.management-form select:focus-visible,
+.management-role-form select:focus-visible,
+.management-header a:focus-visible,
+.management-contexts a:focus-visible,
+.management-row-link:focus-visible {
+  outline: 3px solid rgb(92 111 222 / 35%);
+  outline-offset: 2px;
+}
+
+.management-status {
+  min-height: 1.25rem;
+  margin: 0.75rem 0 0;
+  color: #59636f;
+  font-size: 0.875rem;
+}
+
+.management-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.management-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.875rem 0;
+  border-bottom: 1px solid #edf0f4;
+}
+
+.management-row:last-child {
+  border-bottom: 0;
+}
+
+.management-row > div:first-child {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.management-row-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.management-row-link:hover strong {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+@media (min-width: 44rem) {
+  .management-inline-form {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+  }
+
+  .management-inline-form .management-status {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 43.999rem) {
+  .management-header,
+  .management-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .management-row-actions {
+    width: 100%;
+  }
+
+  .management-row-actions .management-secondary {
+    flex: 1;
+  }
 }

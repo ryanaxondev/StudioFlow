@@ -4,7 +4,7 @@
 
 - `unit/`: pure logic and boundary tests; no network or database.
 - `integration/`: component and in-process integration tests; no shared external state.
-- `database/`: tests against disposable PostgreSQL databases; M04 suites apply the real release migrations before exercising persistence behavior.
+- `database/`: tests against disposable PostgreSQL databases; suites apply the real release migrations before exercising persistence behavior.
 - `e2e/`: narrow browser smoke tests.
 - `accessibility/`: Playwright + Axe smoke tests.
 - `visual/`: screenshot conventions and, after real P0 Screens exist, approved baselines.
@@ -30,3 +30,11 @@ Use `createMigratedTestDatabase()` for suites that exercise real StudioFlow pers
 `tests/database/authentication.integration.test.ts` exercises the passwordless authentication foundation against disposable PostgreSQL, including hashed/single-use Magic Links, protected Outbox delivery, session lifecycle, account disable, redirect preservation, and the database-backed request limiter.
 
 Authentication UI smoke and accessibility coverage live beside the existing browser gates.
+
+## M06 membership and invitation coverage
+
+`tests/database/membership-invitations.integration.test.ts` covers authoritative Workspace/Client membership, invitation lifecycle, concurrency, revocation, cross-Workspace integrity, and protected invitation delivery while preserving M04/M05 regression coverage.
+
+### M06 invitation access bridge
+
+The database suite verifies the invitation-only identity bridge for existing and newly invited identities, including display-name gating, expired-link rejection, Magic Link return to the original invitation, and accepted-state presentation. Browser smoke tests cover the invitation screen states with a stubbed HTTP boundary so browser CI remains independent from PostgreSQL.

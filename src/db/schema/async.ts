@@ -12,6 +12,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 import { users } from "./identity";
+import { workspaces } from "./workspaces";
 
 export type JsonObject = Readonly<Record<string, unknown>>;
 
@@ -55,7 +56,7 @@ export const outboxEvents = pgTable(
   "outbox_events",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    workspaceId: uuid("workspace_id"),
+    workspaceId: uuid("workspace_id").references(() => workspaces.id),
     aggregateType: text("aggregate_type").notNull(),
     aggregateId: uuid("aggregate_id").notNull(),
     eventType: text("event_type").notNull(),

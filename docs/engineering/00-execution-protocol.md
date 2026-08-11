@@ -190,7 +190,7 @@ Later documents translate earlier documents but may not silently change approved
 When a real conflict is found:
 
 1. Stop the affected implementation work.
-2. Record the conflict in `docs/engineering/STATUS.md`.
+2. Record the conflict in the current Milestone engineering brief or an ADR when the decision is durable.
 3. Identify the highest-authority document involved.
 4. Resolve the document conflict.
 5. Resume implementation only after the decision is explicit.
@@ -272,14 +272,12 @@ Contains:
 
 1. Read the Milestone section in `01-implementation-roadmap.md`.
 2. Confirm the previous Milestone is Approved.
-3. Read `docs/engineering/STATUS.md`.
-4. Identify relevant Product documents.
-5. Inspect the current repository state.
-6. Confirm the current migration number.
-7. Confirm explicit non-goals.
-8. Produce a Milestone Brief.
-9. Mark the Milestone `In Progress` in `STATUS.md`.
-10. Begin implementation.
+3. Identify relevant Product documents.
+4. Inspect the current repository and Git state.
+5. Confirm the current migration number.
+6. Confirm explicit non-goals.
+7. Produce or update the Milestone engineering brief when the Milestone needs one.
+8. Begin implementation.
 
 ---
 
@@ -297,7 +295,7 @@ Validation Commands:
 Expected Stopping Point:
 ```
 
-The session continues from `STATUS.md`, not from memory alone.
+The session continues from the repository, Git history, the active Roadmap Milestone, and its engineering brief rather than from memory alone.
 
 ---
 
@@ -316,7 +314,7 @@ Review against Approved documents
    ↓
 Run Milestone Gate checks
    ↓
-Update STATUS.md
+Record only durable decisions in the relevant engineering document
 ```
 
 Avoid temporary permissive authorization, static authoritative mocks, duplicate state, premature generic abstractions, and unapproved scope.
@@ -343,9 +341,8 @@ Review sequence:
 2. Check Approved-document compliance.
 3. Run Milestone Gate commands.
 4. Fix defects.
-5. Update `STATUS.md`.
-6. Mark Milestone `Approved`.
-7. Create one coherent integration commit.
+5. Mark the Milestone Approved in the implementation conversation/review checkpoint.
+6. Create one coherent integration commit.
 
 A commit is not considered created until the user confirms the command succeeded.
 
@@ -388,26 +385,18 @@ Each ADR contains:
 
 ---
 
-## 11. STATUS.md Rules
+## 11. Progress Tracking Rules
 
-`docs/engineering/STATUS.md` is a living operational file.
+StudioFlow does not maintain a separate living `STATUS.md`.
 
-It contains:
+Operational progress is derived from:
 
-- Current Milestone and status
-- Current checkpoint
-- Last Approved Milestone
-- Last confirmed integration commit
-- Current branch and migration
-- Governing documents
-- Completed work
-- Work in progress
-- Next action
-- Blockers
-- Implementation decisions
-- Validation status
+- Git history and the clean/dirty working tree
+- the active Milestone in `01-implementation-roadmap.md`
+- the Milestone engineering brief when one exists
+- current validation output
 
-Update it at Milestone start, after meaningful sessions, before final review, and after the integration commit.
+Only durable architecture, Product, migration, or security decisions belong in repository documentation. Session-by-session progress notes stay out of the repository.
 
 ---
 
@@ -436,8 +425,7 @@ Always identify:
 
 ### Start
 
-- Read STATUS
-- Confirm Milestone
+- Confirm Milestone from the Roadmap and Git history
 - Inspect repository
 - Define checkpoint
 
@@ -453,8 +441,8 @@ Always identify:
 
 ### Close
 
-- Update STATUS
 - State exact next action
+- Record only durable decisions in repository docs
 - Do not commit until Milestone review is complete
 
 ---
@@ -483,10 +471,6 @@ The project is complete only when M24 passes G7.
 
 ---
 
-## 15. Current Starting Point
+## 15. Repository Progress Source
 
-```text
-Current Milestone: M00
-Current Status: Planned
-Next Action: Inspect and establish the repository baseline
-```
+This protocol intentionally does not embed a static current Milestone. The active implementation point is derived from Git history, the Milestone sequence in `01-implementation-roadmap.md`, the current working tree, and the active Milestone engineering brief when one exists.

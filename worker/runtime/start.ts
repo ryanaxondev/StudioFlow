@@ -5,8 +5,14 @@ import { parseWorkerDatabaseEnvironment } from "../../src/db/config";
 import { systemClock } from "../../src/lib/clock";
 import { createRuntimeAuthenticationEmailTransport } from "../../src/modules/auth/email";
 import { parseAuthenticationMessageEnvironment } from "../../src/modules/auth/environment";
+import { createRuntimeInvitationEmailTransport } from "../../src/modules/invitations/email";
+import {
+  CLIENT_INVITATION_DELIVERY_EVENT,
+  WORKSPACE_INVITATION_DELIVERY_EVENT,
+} from "../../src/modules/invitations/email-outbox";
 import { logger } from "../../src/server/observability/logger";
 import { createAuthenticationEmailProcessor } from "../processors/authentication-email";
+import { createInvitationEmailProcessor } from "../processors/invitation-email";
 import { runOutboxWorker } from "./outbox-worker";
 import { ProcessorRegistry } from "./registry";
 
@@ -31,6 +37,22 @@ export async function startWorker(): Promise<void> {
       ),
     }),
   );
+
+  const invitationEmailTransport = createRuntimeInvitationEmailTransport(
+    authenticationMessageEnvironment.NODE_ENV,
+  );
+  for (const eventType of [
+    WORKSPACE_INVITATION_DELIVERY_EVENT,
+    CLIENT_INVITATION_DELIVERY_EVENT,
+  ] as const) {
+    registry.register(
+      createInvitationEmailProcessor(eventType, {
+        encryptionSecret:
+          authenticationMessageEnvironment.AUTH_MESSAGE_ENCRYPTION_SECRET,
+        emailTransport: invitationEmailTransport,
+      }),
+    );
+  }
 
   const requestShutdown = (signal: string) => {
     logger.info("worker.shutdown.requested", { signal, workerId });

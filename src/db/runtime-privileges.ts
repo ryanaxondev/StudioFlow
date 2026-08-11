@@ -63,7 +63,9 @@ export async function applyRuntimePrivileges(options: {
       await client.query(`GRANT USAGE ON SCHEMA public TO ${role}`);
       await client.query(
         `GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE
-          users, sessions, accounts, verifications, idempotency_records, outbox_events
+          users, sessions, accounts, verifications, idempotency_records, outbox_events,
+          workspaces, workspace_branding, workspace_members,
+          client_organizations, client_members, invitations
          TO ${role}`,
       );
       await client.query(

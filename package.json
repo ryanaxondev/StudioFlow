@@ -43,7 +43,8 @@
     "ci:bundle": "pnpm build:web && pnpm bundle:report",
     "db:generate": "drizzle-kit generate --config=drizzle.config.ts",
     "db:migrate": "tsx scripts/db/migrate.ts",
-    "auth:local-user": "tsx scripts/auth/create-local-user.ts"
+    "auth:local-user": "tsx scripts/auth/create-local-user.ts",
+    "workspace:local-setup": "tsx scripts/memberships/create-local-workspace.ts"
   },
   "dependencies": {
     "better-auth": "1.6.25",

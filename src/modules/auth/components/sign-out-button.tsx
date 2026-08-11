@@ -2,7 +2,15 @@
 
 import { useState } from "react";
 
-export function SignOutButton() {
+export type SignOutButtonProps = Readonly<{
+  destination?: string;
+  label?: string;
+}>;
+
+export function SignOutButton({
+  destination = "/access",
+  label = "Sign out",
+}: SignOutButtonProps = {}) {
   const [failed, setFailed] = useState(false);
   const [pending, setPending] = useState(false);
 
@@ -25,7 +33,7 @@ export function SignOutButton() {
         return;
       }
 
-      window.location.assign("/access");
+      window.location.assign(destination);
     } catch {
       setFailed(true);
       setPending(false);
@@ -40,7 +48,7 @@ export function SignOutButton() {
         onClick={signOut}
         disabled={pending}
       >
-        Sign out
+        {label}
       </button>
       <div className="auth-status" aria-live="polite">
         {failed ? <p>Service error</p> : null}

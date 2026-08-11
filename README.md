@@ -10,12 +10,11 @@ StudioFlow is a premium client-delivery platform for boutique web design and dev
 - Testing and CI: `docs/engineering/03-testing-and-ci.md`
 - Database and async foundation: `docs/engineering/04-database-and-async-foundation.md`
 - Authentication foundation: `docs/engineering/05-authentication-foundation.md`
+- Invitations and membership bootstrap: `docs/engineering/06-invitations-and-membership-bootstrap.md`
 
 ## Roadmap
 
 Implementation follows `M00 → M01 → ... → M24` as defined in `docs/engineering/01-implementation-roadmap.md`.
-
-Current milestone: **M05 — Authentication Foundation**
 
 ## Application
 
@@ -52,12 +51,21 @@ pnpm build
 
 Database and browser gates are documented in `docs/engineering/03-testing-and-ci.md`.
 
-## Authentication foundation
+## Authentication and membership foundation
 
-M05 adds existing-user passwordless Email Magic Link authentication with Better Auth, protected Outbox delivery through the Worker to local Mailpit, database-backed sessions and rate limiting, and the `/access`, `/account`, and `/recover-access` identity surfaces. See `docs/engineering/05-authentication-foundation.md`.
+M05 provides existing-user passwordless Email Magic Link authentication. M06 adds authoritative Workspace and Client Organization membership, controlled invitations, invitation acceptance, and the initial Agency membership/client management surfaces.
 
-Create a local identity for the M05 smoke flow with:
+Create a local identity and controlled Agency Workspace for the M06 smoke flow with:
 
 ```bash
 pnpm auth:local-user --email developer@example.com --name "Developer"
+pnpm db:migrate
+pnpm workspace:local-setup --owner developer@example.com --name "StudioFlow Local"
+```
+
+Run both the Web application and Worker when manually testing invitation delivery:
+
+```bash
+pnpm dev
+pnpm dev:worker
 ```

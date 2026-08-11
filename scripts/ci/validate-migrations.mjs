@@ -2,7 +2,7 @@ import { readdir } from "node:fs/promises";
 import { resolve } from "node:path";
 
 const migrationsDirectory = resolve(process.cwd(), "src/db/migrations");
-const implementedMigrationCount = 3;
+const implementedMigrationCount = 5;
 const approvedNames = [
   "0001_extensions_and_system.sql",
   "0002_identity_foundation.sql",
@@ -33,7 +33,7 @@ const files = entries
 
 if (files.length !== implementedMigrationCount) {
   throw new Error(
-    `M04 requires exactly ${implementedMigrationCount} release migrations; found ${files.length}.`,
+    `The current repository requires exactly ${implementedMigrationCount} implemented release migrations; found ${files.length}.`,
   );
 }
 
@@ -70,5 +70,5 @@ for (const [index, file] of files.entries()) {
 }
 
 console.log(
-  `Migration validation passed: ${files.length} M04 migration(s) are contiguous and valid.`,
+  `Migration validation passed: ${files.length} implemented migration(s) are contiguous and valid.`,
 );

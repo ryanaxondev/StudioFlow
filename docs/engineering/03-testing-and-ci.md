@@ -67,7 +67,7 @@ M03 defines future visual baselines under `tests/visual/baselines/` but adds no 
 pnpm db:migrations:validate
 ```
 
-The validator enforces contiguous numeric migration prefixes and the Approved filenames for migrations `0001` through `0019`. M04 currently implements and permits `0001` through `0003`; later Milestones advance that ceiling only when their Approved migrations are introduced.
+The validator enforces contiguous numeric migration prefixes and the Approved filenames for migrations `0001` through `0019`. M06 currently implements and permits `0001` through `0005`; later Milestones advance that ceiling only when their Approved migrations are introduced.
 
 ## Bundle budgets
 
@@ -112,3 +112,8 @@ The workflow has a manual `force_static_failure` input. Run the CI workflow manu
 ### Bundle-budget production runtime
 
 The bundle reporter starts a production Web process solely to measure initial browser JavaScript. When CI does not provide application database or authentication runtime values, the reporter supplies syntactically valid non-secret measurement values. The measured `/` route and liveness endpoint do not establish a database or authentication session. Production deployments still require the real Web `DATABASE_URL`, `BETTER_AUTH_URL`, `BETTER_AUTH_SECRET`, and `AUTH_MESSAGE_ENCRYPTION_SECRET` through startup validation.
+
+
+## M06 invitation browser coverage
+
+M06 adds browser smoke and accessibility coverage for the invitation acceptance surface. These browser tests stub the invitation HTTP boundary and therefore do not require PostgreSQL in the existing E2E/accessibility CI jobs. Authoritative invitation lifecycle, invitation-only identity creation, membership activation, concurrency, and revocation remain covered by the PostgreSQL database gate.
