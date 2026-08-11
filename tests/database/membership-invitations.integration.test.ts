@@ -1,6 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
+import { testActor } from "../helpers/authorization";
 import {
   clientMembers,
   invitations,
@@ -11,11 +12,11 @@ import {
 import {
   changeWorkspaceMembershipRole,
   createClientOrganization,
-  createWorkspaceForControlledSetup,
-  resolveActiveMembershipContexts,
   revokeClientMembership,
   revokeWorkspaceMembership,
 } from "../../src/modules/memberships/service";
+import { createWorkspaceForControlledSetup } from "../../src/modules/memberships/setup";
+import { resolveActiveMembershipContexts } from "../../src/modules/memberships/queries";
 import {
   acceptInvitation,
   hashInvitationToken,
@@ -140,7 +141,7 @@ describe("M06 membership and invitation foundation", () => {
     const invitedEmail = "agency.member@example.com";
     const result = await inviteWorkspaceMember({
       database: testDatabase.database,
-      actorUserId: owner.id,
+      actor: testActor(owner.id),
       workspaceId,
       email: `  ${invitedEmail.toUpperCase()} `,
       role: "AGENCY_MEMBER",
@@ -202,18 +203,18 @@ describe("M06 membership and invitation foundation", () => {
     await expect(
       inviteWorkspaceMember({
         database: testDatabase.database,
-        actorUserId: agencyMember.id,
+        actor: testActor(agencyMember.id),
         workspaceId,
         email: "other@example.com",
         role: "AGENCY_MEMBER",
         delivery,
         clock: baseClock,
       }),
-    ).rejects.toThrow("Active Workspace management membership is required.");
+    ).rejects.toMatchObject({ name: "AuthorizationError" });
 
     await inviteWorkspaceMember({
       database: testDatabase.database,
-      actorUserId: owner.id,
+      actor: testActor(owner.id),
       workspaceId,
       email: "pending@example.com",
       role: "AGENCY_MEMBER",
@@ -223,7 +224,7 @@ describe("M06 membership and invitation foundation", () => {
     await expect(
       inviteWorkspaceMember({
         database: testDatabase.database,
-        actorUserId: owner.id,
+        actor: testActor(owner.id),
         workspaceId,
         email: "pending@example.com",
         role: "DELIVERY_MANAGER",
@@ -237,7 +238,7 @@ describe("M06 membership and invitation foundation", () => {
     const { owner, workspaceId } = await createWorkspace();
     const client = await createClientOrganization({
       database: testDatabase.database,
-      actorUserId: owner.id,
+      actor: testActor(owner.id),
       workspaceId,
       name: "Kestrelon",
       clock: baseClock,
@@ -245,7 +246,7 @@ describe("M06 membership and invitation foundation", () => {
     const invited = await createUser("client@example.com");
     const invitation = await inviteClientMember({
       database: testDatabase.database,
-      actorUserId: owner.id,
+      actor: testActor(owner.id),
       workspaceId,
       clientOrganizationId: client.clientOrganizationId,
       email: invited.email,
@@ -261,7 +262,7 @@ describe("M06 membership and invitation foundation", () => {
 
     await acceptInvitation({
       database: testDatabase.database,
-      authenticatedUserId: invited.id,
+      actor: testActor(invited.id),
       token: invitation.token,
       clock: baseClock,
     });
@@ -284,7 +285,7 @@ describe("M06 membership and invitation foundation", () => {
     const second = await createWorkspace("owner.two@example.com");
     const secondClient = await createClientOrganization({
       database: testDatabase.database,
-      actorUserId: second.owner.id,
+      actor: testActor(second.owner.id),
       workspaceId: second.workspaceId,
       name: "Second Client",
       clock: baseClock,
@@ -293,7 +294,7 @@ describe("M06 membership and invitation foundation", () => {
     await expect(
       inviteClientMember({
         database: testDatabase.database,
-        actorUserId: first.owner.id,
+        actor: testActor(first.owner.id),
         workspaceId: first.workspaceId,
         clientOrganizationId: secondClient.clientOrganizationId,
         email: "cross@example.com",
@@ -318,7 +319,7 @@ describe("M06 membership and invitation foundation", () => {
     const expiredUser = await createUser("expired@example.com");
     const expired = await inviteWorkspaceMember({
       database: testDatabase.database,
-      actorUserId: owner.id,
+      actor: testActor(owner.id),
       workspaceId,
       email: expiredUser.email,
       role: "AGENCY_MEMBER",
@@ -329,7 +330,7 @@ describe("M06 membership and invitation foundation", () => {
     await expect(
       acceptInvitation({
         database: testDatabase.database,
-        authenticatedUserId: expiredUser.id,
+        actor: testActor(expiredUser.id),
         token: expired.token,
         clock: laterClock(7 * 24 * 60 * 60 * 1000),
       }),
@@ -338,7 +339,7 @@ describe("M06 membership and invitation foundation", () => {
     const revokedUser = await createUser("revoked@example.com");
     const revoked = await inviteWorkspaceMember({
       database: testDatabase.database,
-      actorUserId: owner.id,
+      actor: testActor(owner.id),
       workspaceId,
       email: revokedUser.email,
       role: "AGENCY_MEMBER",
@@ -348,7 +349,7 @@ describe("M06 membership and invitation foundation", () => {
     expect(
       await revokeInvitation({
         database: testDatabase.database,
-        actorUserId: owner.id,
+        actor: testActor(owner.id),
         invitationId: revoked.invitationId,
         clock: laterClock(1_000),
       }),
@@ -356,7 +357,7 @@ describe("M06 membership and invitation foundation", () => {
     await expect(
       acceptInvitation({
         database: testDatabase.database,
-        authenticatedUserId: revokedUser.id,
+        actor: testActor(revokedUser.id),
         token: revoked.token,
         clock: laterClock(2_000),
       }),
@@ -368,7 +369,7 @@ describe("M06 membership and invitation foundation", () => {
     const user = await createUser("resend@example.com");
     const original = await inviteWorkspaceMember({
       database: testDatabase.database,
-      actorUserId: owner.id,
+      actor: testActor(owner.id),
       workspaceId,
       email: user.email,
       role: "DELIVERY_MANAGER",
@@ -377,7 +378,7 @@ describe("M06 membership and invitation foundation", () => {
     });
     const resent = await resendInvitation({
       database: testDatabase.database,
-      actorUserId: owner.id,
+      actor: testActor(owner.id),
       invitationId: original.invitationId,
       delivery,
       clock: laterClock(60_000),
@@ -394,7 +395,7 @@ describe("M06 membership and invitation foundation", () => {
     await expect(
       acceptInvitation({
         database: testDatabase.database,
-        authenticatedUserId: user.id,
+        actor: testActor(user.id),
         token: original.token,
         clock: laterClock(61_000),
       }),
@@ -403,7 +404,7 @@ describe("M06 membership and invitation foundation", () => {
     await expect(
       acceptInvitation({
         database: testDatabase.database,
-        authenticatedUserId: user.id,
+        actor: testActor(user.id),
         token: resent.token,
         clock: laterClock(61_000),
       }),
@@ -415,7 +416,7 @@ describe("M06 membership and invitation foundation", () => {
     const user = await createUser("expired-resend@example.com");
     const original = await inviteWorkspaceMember({
       database: testDatabase.database,
-      actorUserId: owner.id,
+      actor: testActor(owner.id),
       workspaceId,
       email: user.email,
       role: "AGENCY_MEMBER",
@@ -427,7 +428,7 @@ describe("M06 membership and invitation foundation", () => {
     expect(
       await revokeInvitation({
         database: testDatabase.database,
-        actorUserId: owner.id,
+        actor: testActor(owner.id),
         invitationId: original.invitationId,
         clock: afterExpiry,
       }),
@@ -435,7 +436,7 @@ describe("M06 membership and invitation foundation", () => {
 
     const resent = await resendInvitation({
       database: testDatabase.database,
-      actorUserId: owner.id,
+      actor: testActor(owner.id),
       invitationId: original.invitationId,
       delivery,
       clock: afterExpiry,
@@ -450,7 +451,7 @@ describe("M06 membership and invitation foundation", () => {
     await expect(
       acceptInvitation({
         database: testDatabase.database,
-        authenticatedUserId: user.id,
+        actor: testActor(user.id),
         token: original.token,
         clock: afterExpiry,
       }),
@@ -458,7 +459,7 @@ describe("M06 membership and invitation foundation", () => {
     await expect(
       acceptInvitation({
         database: testDatabase.database,
-        authenticatedUserId: user.id,
+        actor: testActor(user.id),
         token: resent.token,
         clock: afterExpiry,
       }),
@@ -470,7 +471,7 @@ describe("M06 membership and invitation foundation", () => {
     const user = await createUser("stale-resend@example.com");
     const stale = await inviteWorkspaceMember({
       database: testDatabase.database,
-      actorUserId: owner.id,
+      actor: testActor(owner.id),
       workspaceId,
       email: user.email,
       role: "AGENCY_MEMBER",
@@ -480,7 +481,7 @@ describe("M06 membership and invitation foundation", () => {
     const afterExpiry = laterClock(7 * 24 * 60 * 60 * 1000 + 1_000);
     const current = await inviteWorkspaceMember({
       database: testDatabase.database,
-      actorUserId: owner.id,
+      actor: testActor(owner.id),
       workspaceId,
       email: user.email,
       role: "AGENCY_MEMBER",
@@ -489,7 +490,7 @@ describe("M06 membership and invitation foundation", () => {
     });
     await acceptInvitation({
       database: testDatabase.database,
-      authenticatedUserId: user.id,
+      actor: testActor(user.id),
       token: current.token,
       clock: afterExpiry,
     });
@@ -497,7 +498,7 @@ describe("M06 membership and invitation foundation", () => {
     await expect(
       resendInvitation({
         database: testDatabase.database,
-        actorUserId: owner.id,
+        actor: testActor(owner.id),
         invitationId: stale.invitationId,
         delivery,
         clock: laterClock(7 * 24 * 60 * 60 * 1000 + 2_000),
@@ -514,7 +515,7 @@ describe("M06 membership and invitation foundation", () => {
     });
     const invitation = await inviteWorkspaceMember({
       database: testDatabase.database,
-      actorUserId: owner.id,
+      actor: testActor(owner.id),
       workspaceId,
       email: intended.email,
       role: "AGENCY_MEMBER",
@@ -525,7 +526,7 @@ describe("M06 membership and invitation foundation", () => {
     await expect(
       acceptInvitation({
         database: testDatabase.database,
-        authenticatedUserId: wrong.id,
+        actor: testActor(wrong.id),
         token: invitation.token,
         clock: baseClock,
       }),
@@ -533,7 +534,7 @@ describe("M06 membership and invitation foundation", () => {
 
     const unverifiedInvitation = await inviteWorkspaceMember({
       database: testDatabase.database,
-      actorUserId: owner.id,
+      actor: testActor(owner.id),
       workspaceId,
       email: unverified.email,
       role: "AGENCY_MEMBER",
@@ -543,7 +544,7 @@ describe("M06 membership and invitation foundation", () => {
     await expect(
       acceptInvitation({
         database: testDatabase.database,
-        authenticatedUserId: unverified.id,
+        actor: testActor(unverified.id),
         token: unverifiedInvitation.token,
         clock: baseClock,
       }),
@@ -556,7 +557,7 @@ describe("M06 membership and invitation foundation", () => {
     const existing = await createUser("existing@example.com");
     const existingInvitation = await inviteWorkspaceMember({
       database: testDatabase.database,
-      actorUserId: owner.id,
+      actor: testActor(owner.id),
       workspaceId,
       email: existing.email,
       role: "AGENCY_MEMBER",
@@ -566,7 +567,7 @@ describe("M06 membership and invitation foundation", () => {
     expect(
       await acceptInvitation({
         database: testDatabase.database,
-        authenticatedUserId: existing.id,
+        actor: testActor(existing.id),
         token: existingInvitation.token,
         clock: baseClock,
       }),
@@ -574,7 +575,7 @@ describe("M06 membership and invitation foundation", () => {
     expect(
       await acceptInvitation({
         database: testDatabase.database,
-        authenticatedUserId: existing.id,
+        actor: testActor(existing.id),
         token: existingInvitation.token,
         clock: baseClock,
       }),
@@ -583,7 +584,7 @@ describe("M06 membership and invitation foundation", () => {
     const futureEmail = "future@example.com";
     const futureInvitation = await inviteWorkspaceMember({
       database: testDatabase.database,
-      actorUserId: owner.id,
+      actor: testActor(owner.id),
       workspaceId,
       email: futureEmail,
       role: "AGENCY_MEMBER",
@@ -594,7 +595,7 @@ describe("M06 membership and invitation foundation", () => {
     await expect(
       acceptInvitation({
         database: testDatabase.database,
-        authenticatedUserId: futureUser.id,
+        actor: testActor(futureUser.id),
         token: futureInvitation.token,
         clock: baseClock,
       }),
@@ -603,7 +604,7 @@ describe("M06 membership and invitation foundation", () => {
     const concurrent = await createUser("concurrent@example.com");
     const concurrentInvitation = await inviteWorkspaceMember({
       database: testDatabase.database,
-      actorUserId: owner.id,
+      actor: testActor(owner.id),
       workspaceId,
       email: concurrent.email,
       role: "AGENCY_MEMBER",
@@ -613,13 +614,13 @@ describe("M06 membership and invitation foundation", () => {
     const results = await Promise.all([
       acceptInvitation({
         database: testDatabase.database,
-        authenticatedUserId: concurrent.id,
+        actor: testActor(concurrent.id),
         token: concurrentInvitation.token,
         clock: baseClock,
       }),
       acceptInvitation({
         database: testDatabase.database,
-        authenticatedUserId: concurrent.id,
+        actor: testActor(concurrent.id),
         token: concurrentInvitation.token,
         clock: baseClock,
       }),
@@ -646,7 +647,7 @@ describe("M06 membership and invitation foundation", () => {
     const user = await createUser("accepted-terminal@example.com");
     const invitation = await inviteWorkspaceMember({
       database: testDatabase.database,
-      actorUserId: owner.id,
+      actor: testActor(owner.id),
       workspaceId,
       email: user.email,
       role: "AGENCY_MEMBER",
@@ -655,7 +656,7 @@ describe("M06 membership and invitation foundation", () => {
     });
     await acceptInvitation({
       database: testDatabase.database,
-      authenticatedUserId: user.id,
+      actor: testActor(user.id),
       token: invitation.token,
       clock: baseClock,
     });
@@ -663,7 +664,7 @@ describe("M06 membership and invitation foundation", () => {
     await expect(
       acceptInvitation({
         database: testDatabase.database,
-        authenticatedUserId: user.id,
+        actor: testActor(user.id),
         token: invitation.token,
         clock: laterClock(7 * 24 * 60 * 60 * 1000 + 1_000),
       }),
@@ -675,7 +676,7 @@ describe("M06 membership and invitation foundation", () => {
     const agency = await createUser("agency-revoke@example.com");
     const agencyInvitation = await inviteWorkspaceMember({
       database: testDatabase.database,
-      actorUserId: owner.id,
+      actor: testActor(owner.id),
       workspaceId,
       email: agency.email,
       role: "AGENCY_MEMBER",
@@ -684,14 +685,14 @@ describe("M06 membership and invitation foundation", () => {
     });
     await acceptInvitation({
       database: testDatabase.database,
-      authenticatedUserId: agency.id,
+      actor: testActor(agency.id),
       token: agencyInvitation.token,
       clock: baseClock,
     });
 
     const organization = await createClientOrganization({
       database: testDatabase.database,
-      actorUserId: owner.id,
+      actor: testActor(owner.id),
       workspaceId,
       name: "Client",
       clock: baseClock,
@@ -699,7 +700,7 @@ describe("M06 membership and invitation foundation", () => {
     const client = await createUser("client-revoke@example.com");
     const clientInvitation = await inviteClientMember({
       database: testDatabase.database,
-      actorUserId: owner.id,
+      actor: testActor(owner.id),
       workspaceId,
       clientOrganizationId: organization.clientOrganizationId,
       email: client.email,
@@ -708,7 +709,7 @@ describe("M06 membership and invitation foundation", () => {
     });
     await acceptInvitation({
       database: testDatabase.database,
-      authenticatedUserId: client.id,
+      actor: testActor(client.id),
       token: clientInvitation.token,
       clock: baseClock,
     });
@@ -716,7 +717,7 @@ describe("M06 membership and invitation foundation", () => {
     expect(
       await revokeWorkspaceMembership({
         database: testDatabase.database,
-        actorUserId: owner.id,
+        actor: testActor(owner.id),
         workspaceId,
         targetUserId: agency.id,
         clock: laterClock(10_000),
@@ -725,7 +726,7 @@ describe("M06 membership and invitation foundation", () => {
     expect(
       await revokeClientMembership({
         database: testDatabase.database,
-        actorUserId: owner.id,
+        actor: testActor(owner.id),
         workspaceId,
         clientOrganizationId: organization.clientOrganizationId,
         targetUserId: client.id,
@@ -755,7 +756,7 @@ describe("M06 membership and invitation foundation", () => {
     await expect(
       changeWorkspaceMembershipRole({
         database: testDatabase.database,
-        actorUserId: owner.id,
+        actor: testActor(owner.id),
         workspaceId,
         targetUserId: member.id,
         role: "DELIVERY_MANAGER",
@@ -777,17 +778,17 @@ describe("M06 membership and invitation foundation", () => {
     await expect(
       changeWorkspaceMembershipRole({
         database: testDatabase.database,
-        actorUserId: member.id,
+        actor: testActor(member.id),
         workspaceId,
         targetUserId: owner.id,
         role: "AGENCY_MEMBER",
       }),
-    ).rejects.toThrow("Active Workspace management membership is required.");
+    ).rejects.toMatchObject({ name: "AuthorizationError" });
 
     await expect(
       changeWorkspaceMembershipRole({
         database: testDatabase.database,
-        actorUserId: owner.id,
+        actor: testActor(owner.id),
         workspaceId,
         targetUserId: owner.id,
         role: "AGENCY_MEMBER",
@@ -797,7 +798,7 @@ describe("M06 membership and invitation foundation", () => {
     await expect(
       revokeWorkspaceMembership({
         database: testDatabase.database,
-        actorUserId: owner.id,
+        actor: testActor(owner.id),
         workspaceId,
         targetUserId: owner.id,
         clock: laterClock(1_000),
@@ -819,7 +820,7 @@ describe("M06 membership and invitation foundation", () => {
     await expect(
       createClientOrganization({
         database: testDatabase.database,
-        actorUserId: manager.id,
+        actor: testActor(manager.id),
         workspaceId,
         name: "Manager Created Client",
         clock: baseClock,
@@ -828,7 +829,7 @@ describe("M06 membership and invitation foundation", () => {
 
     await revokeWorkspaceMembership({
       database: testDatabase.database,
-      actorUserId: owner.id,
+      actor: testActor(owner.id),
       workspaceId,
       targetUserId: manager.id,
       clock: laterClock(1_000),
@@ -837,16 +838,16 @@ describe("M06 membership and invitation foundation", () => {
     await expect(
       createClientOrganization({
         database: testDatabase.database,
-        actorUserId: manager.id,
+        actor: testActor(manager.id),
         workspaceId,
         name: "Should Fail",
         clock: laterClock(2_000),
       }),
-    ).rejects.toThrow("Active Workspace management membership is required.");
+    ).rejects.toMatchObject({ name: "AuthorizationError" });
 
     const organization = await createClientOrganization({
       database: testDatabase.database,
-      actorUserId: owner.id,
+      actor: testActor(owner.id),
       workspaceId,
       name: "Client Context",
       clock: baseClock,
@@ -854,7 +855,7 @@ describe("M06 membership and invitation foundation", () => {
     const clientUser = await createUser("client-only@example.com");
     const clientInvitation = await inviteClientMember({
       database: testDatabase.database,
-      actorUserId: owner.id,
+      actor: testActor(owner.id),
       workspaceId,
       clientOrganizationId: organization.clientOrganizationId,
       email: clientUser.email,
@@ -863,7 +864,7 @@ describe("M06 membership and invitation foundation", () => {
     });
     await acceptInvitation({
       database: testDatabase.database,
-      authenticatedUserId: clientUser.id,
+      actor: testActor(clientUser.id),
       token: clientInvitation.token,
       clock: baseClock,
     });
@@ -871,12 +872,12 @@ describe("M06 membership and invitation foundation", () => {
     await expect(
       createClientOrganization({
         database: testDatabase.database,
-        actorUserId: clientUser.id,
+        actor: testActor(clientUser.id),
         workspaceId,
         name: "Client Cannot Manage Agency",
         clock: baseClock,
       }),
-    ).rejects.toThrow("Active Workspace management membership is required.");
+    ).rejects.toMatchObject({ name: "AuthorizationError" });
   });
 
   it("does not allow an accepted token to reactivate a later revoked membership", async () => {
@@ -884,7 +885,7 @@ describe("M06 membership and invitation foundation", () => {
     const member = await createUser("historical@example.com");
     const invitation = await inviteWorkspaceMember({
       database: testDatabase.database,
-      actorUserId: owner.id,
+      actor: testActor(owner.id),
       workspaceId,
       email: member.email,
       role: "AGENCY_MEMBER",
@@ -893,13 +894,13 @@ describe("M06 membership and invitation foundation", () => {
     });
     await acceptInvitation({
       database: testDatabase.database,
-      authenticatedUserId: member.id,
+      actor: testActor(member.id),
       token: invitation.token,
       clock: baseClock,
     });
     await revokeWorkspaceMembership({
       database: testDatabase.database,
-      actorUserId: owner.id,
+      actor: testActor(owner.id),
       workspaceId,
       targetUserId: member.id,
       clock: laterClock(1_000),
@@ -908,7 +909,7 @@ describe("M06 membership and invitation foundation", () => {
     await expect(
       acceptInvitation({
         database: testDatabase.database,
-        authenticatedUserId: member.id,
+        actor: testActor(member.id),
         token: invitation.token,
         clock: laterClock(2_000),
       }),

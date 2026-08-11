@@ -1,15 +1,21 @@
 import { headers } from "next/headers";
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { ClientOrganizationCreateForm } from "../../../modules/agency/components/client-organization-create-form";
-import { SessionRefresh } from "../../../modules/auth/components/session-refresh";
-import { getCurrentStudioFlowSession } from "../../../modules/auth/server/session";
 import {
-  listClientOrganizationsForWorkspace,
-  resolveAgencyWorkspaceSelection,
-} from "../../../modules/memberships/queries";
-import { workspaceClientManagerRoles } from "../../../modules/memberships/service";
+  canCreateClientOrganization,
+  canManageAgencyMembers,
+  canViewClientOrganization,
+  canViewClientOrganizations,
+} from "../../../modules/authorization/policies";
+import {
+  getCurrentActorContext,
+  logAuthorizationDenied,
+  resolveAuthorizedAgencyWorkspaceSelection,
+} from "../../../modules/authorization/server/authorization";
+import { SessionRefresh } from "../../../modules/auth/components/session-refresh";
+import { listClientOrganizationsForWorkspace } from "../../../modules/memberships/queries";
 import { getApplicationDatabase } from "../../../server/database";
 
 type PageProps = Readonly<{
@@ -28,46 +34,60 @@ export default async function ClientOrganizationsPage({
   const readonlyHeaders = await headers();
   const requestHeaders = new Headers();
   readonlyHeaders.forEach((value, key) => requestHeaders.append(key, value));
-  const session = await getCurrentStudioFlowSession(requestHeaders);
+  const database = getApplicationDatabase();
+  const actor = await getCurrentActorContext(requestHeaders, database);
 
-  if (!session) {
+  if (!actor) {
     const returnTo = requestedWorkspaceId
       ? `/agency/clients?workspaceId=${encodeURIComponent(requestedWorkspaceId)}`
       : "/agency/clients";
     redirect(`/access?returnTo=${encodeURIComponent(returnTo)}`);
   }
 
-  const database = getApplicationDatabase();
-  const selection = await resolveAgencyWorkspaceSelection(database, {
-    userId: session.user.id,
-    requestedWorkspaceId,
-    allowedRoles: workspaceClientManagerRoles,
-  });
-
-  if (!selection) {
-    redirect("/account");
+  const result = await resolveAuthorizedAgencyWorkspaceSelection(
+    database,
+    actor,
+    { requestedWorkspaceId, policy: canViewClientOrganizations },
+  );
+  if (result.status === "not-found") notFound();
+  if (result.status === "denied") {
+    logAuthorizationDenied(result.result, "agency.clients.collection");
+    redirect("/access-denied");
   }
 
+  const { selected, options } = result.selection;
   const organizations = await listClientOrganizationsForWorkspace(
     database,
-    selection.selected.workspaceId,
+    selected.scope,
   );
+  const canManageMembers = canManageAgencyMembers(
+    actor,
+    selected.workspaceId,
+  ).allowed;
+  const canCreateClient = canCreateClientOrganization(
+    actor,
+    selected.workspaceId,
+  ).allowed;
+  const canOpenClientDetail = canViewClientOrganization(
+    actor,
+    selected.workspaceId,
+  ).allowed;
 
   return (
     <main className="management-shell">
       <SessionRefresh
-        returnTo={`/agency/clients?workspaceId=${encodeURIComponent(selection.selected.workspaceId)}`}
+        returnTo={`/agency/clients?workspaceId=${encodeURIComponent(selected.workspaceId)}`}
       />
       <header className="management-header">
         <div>
           <p className="auth-brand">StudioFlow</p>
           <h1>Client Organizations</h1>
-          <p>{selection.selected.workspaceName}</p>
+          <p>{selected.workspaceName}</p>
         </div>
         <nav aria-label="Workspace utilities">
-          {selection.selected.role === "AGENCY_OWNER" ? (
+          {canManageMembers ? (
             <Link
-              href={`/agency/settings/members?workspaceId=${selection.selected.workspaceId}`}
+              href={`/agency/settings/members?workspaceId=${selected.workspaceId}`}
             >
               Agency Members
             </Link>
@@ -76,13 +96,13 @@ export default async function ClientOrganizationsPage({
         </nav>
       </header>
 
-      {selection.options.length > 1 ? (
+      {options.length > 1 ? (
         <nav className="management-contexts" aria-label="Workspace context">
-          {selection.options.map((workspace) => (
+          {options.map((workspace) => (
             <Link
               key={workspace.workspaceId}
               aria-current={
-                workspace.workspaceId === selection.selected.workspaceId
+                workspace.workspaceId === selected.workspaceId
                   ? "page"
                   : undefined
               }
@@ -94,15 +114,18 @@ export default async function ClientOrganizationsPage({
         </nav>
       ) : null}
 
-      <section
-        className="management-panel"
-        aria-labelledby="create-client-heading"
-      >
-        <h2 id="create-client-heading">Create Client Organization</h2>
-        <ClientOrganizationCreateForm
-          workspaceId={selection.selected.workspaceId}
-        />
-      </section>
+      {canCreateClient ? (
+        <section
+          className="management-panel"
+          aria-labelledby="create-client-heading"
+        >
+          <h2 id="create-client-heading">Create Client Organization</h2>
+          <ClientOrganizationCreateForm
+            workspaceId={selected.workspaceId}
+            openCreatedOrganization={canOpenClientDetail}
+          />
+        </section>
+      ) : null}
 
       <section
         className="management-panel"
@@ -117,7 +140,7 @@ export default async function ClientOrganizationsPage({
               <Link
                 className="management-row management-row-link"
                 key={organization.clientOrganizationId}
-                href={`/agency/clients/${organization.clientOrganizationId}?workspaceId=${selection.selected.workspaceId}`}
+                href={`/agency/clients/${organization.clientOrganizationId}?workspaceId=${selected.workspaceId}`}
               >
                 <div>
                   <strong>{organization.name}</strong>

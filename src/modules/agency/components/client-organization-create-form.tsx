@@ -3,9 +3,12 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { createClientOrganizationAction } from "../actions";
+
 export function ClientOrganizationCreateForm({
   workspaceId,
-}: Readonly<{ workspaceId: string }>) {
+  openCreatedOrganization,
+}: Readonly<{ workspaceId: string; openCreatedOrganization: boolean }>) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [status, setStatus] = useState("");
@@ -17,25 +20,21 @@ export function ClientOrganizationCreateForm({
     setStatus("");
 
     try {
-      const response = await fetch("/api/agency/clients", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          workspaceId,
-          name: String(form.get("name") ?? ""),
-        }),
+      const result = await createClientOrganizationAction({
+        workspaceId,
+        name: String(form.get("name") ?? ""),
       });
-      const payload = (await response.json()) as {
-        status?: string;
-        clientOrganizationId?: string;
-      };
-      if (!response.ok || !payload.clientOrganizationId) {
-        setStatus(payload.status ?? "Creation failed");
+      if (!result.ok || !result.id) {
+        setStatus(result.status ?? "Creation failed");
         return;
       }
-      router.push(
-        `/agency/clients/${payload.clientOrganizationId}?workspaceId=${encodeURIComponent(workspaceId)}`,
-      );
+      if (openCreatedOrganization) {
+        router.push(
+          `/agency/clients/${result.id}?workspaceId=${encodeURIComponent(workspaceId)}`,
+        );
+      } else {
+        setStatus("Client Organization created");
+      }
       router.refresh();
     } catch {
       setStatus("Service error");

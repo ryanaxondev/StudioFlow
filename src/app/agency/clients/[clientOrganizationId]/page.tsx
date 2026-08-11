@@ -4,13 +4,17 @@ import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
 
 import { ClientMemberManagement } from "../../../../modules/agency/components/client-member-management";
-import { SessionRefresh } from "../../../../modules/auth/components/session-refresh";
-import { getCurrentStudioFlowSession } from "../../../../modules/auth/server/session";
 import {
-  getClientOrganizationDetail,
-  resolveAgencyWorkspaceSelection,
-} from "../../../../modules/memberships/queries";
-import { workspaceClientManagerRoles } from "../../../../modules/memberships/service";
+  canManageClientMembers,
+  canViewClientOrganization,
+} from "../../../../modules/authorization/policies";
+import {
+  getCurrentActorContext,
+  logAuthorizationDenied,
+  resolveAuthorizedAgencyWorkspaceSelection,
+} from "../../../../modules/authorization/server/authorization";
+import { SessionRefresh } from "../../../../modules/auth/components/session-refresh";
+import { getClientOrganizationDetail } from "../../../../modules/memberships/queries";
 import { getApplicationDatabase } from "../../../../server/database";
 
 type PageProps = Readonly<{
@@ -31,60 +35,57 @@ export default async function ClientOrganizationDetailPage({
     searchParams,
   ]);
   const requestedWorkspaceId = firstValue(parameters.workspaceId);
-  if (!z.string().uuid().safeParse(clientOrganizationId).success) {
-    notFound();
-  }
+  if (!z.string().uuid().safeParse(clientOrganizationId).success) notFound();
 
   const readonlyHeaders = await headers();
   const requestHeaders = new Headers();
   readonlyHeaders.forEach((value, key) => requestHeaders.append(key, value));
-  const session = await getCurrentStudioFlowSession(requestHeaders);
+  const database = getApplicationDatabase();
+  const actor = await getCurrentActorContext(requestHeaders, database);
 
-  if (!session) {
+  if (!actor) {
     const returnTo = requestedWorkspaceId
       ? `/agency/clients/${clientOrganizationId}?workspaceId=${encodeURIComponent(requestedWorkspaceId)}`
       : `/agency/clients/${clientOrganizationId}`;
     redirect(`/access?returnTo=${encodeURIComponent(returnTo)}`);
   }
 
-  const database = getApplicationDatabase();
-  const selection = await resolveAgencyWorkspaceSelection(database, {
-    userId: session.user.id,
-    requestedWorkspaceId,
-    allowedRoles: workspaceClientManagerRoles,
-  });
-
-  if (!selection) {
-    redirect("/account");
+  const result = await resolveAuthorizedAgencyWorkspaceSelection(
+    database,
+    actor,
+    { requestedWorkspaceId, policy: canViewClientOrganization },
+  );
+  if (result.status === "not-found") notFound();
+  if (result.status === "denied") {
+    logAuthorizationDenied(result.result, "agency.client-organization.detail");
+    redirect("/access-denied");
   }
 
+  const { selected } = result.selection;
   const detail = await getClientOrganizationDetail(database, {
-    workspaceId: selection.selected.workspaceId,
+    scope: selected.scope,
     clientOrganizationId,
     now: new Date(),
   });
+  if (!detail) notFound();
 
-  if (!detail) {
-    redirect(`/agency/clients?workspaceId=${selection.selected.workspaceId}`);
-  }
+  const canManage = canManageClientMembers(actor, selected.workspaceId).allowed;
 
   return (
     <main className="management-shell">
       <SessionRefresh
-        returnTo={`/agency/clients/${clientOrganizationId}?workspaceId=${encodeURIComponent(selection.selected.workspaceId)}`}
+        returnTo={`/agency/clients/${clientOrganizationId}?workspaceId=${encodeURIComponent(selected.workspaceId)}`}
       />
       <header className="management-header">
         <div>
           <p className="auth-brand">StudioFlow</p>
           <h1>{detail.name}</h1>
           <p>
-            {selection.selected.workspaceName} · {detail.status}
+            {selected.workspaceName} · {detail.status}
           </p>
         </div>
         <nav aria-label="Client Organization utilities">
-          <Link
-            href={`/agency/clients?workspaceId=${selection.selected.workspaceId}`}
-          >
+          <Link href={`/agency/clients?workspaceId=${selected.workspaceId}`}>
             All clients
           </Link>
           <Link href="/account">Account</Link>
@@ -102,11 +103,19 @@ export default async function ClientOrganizationDetailPage({
         </p>
       </section>
 
-      <ClientMemberManagement
-        workspaceId={selection.selected.workspaceId}
-        clientOrganizationId={detail.clientOrganizationId}
-        detail={detail}
-      />
+      {canManage ? (
+        <ClientMemberManagement
+          workspaceId={selected.workspaceId}
+          clientOrganizationId={detail.clientOrganizationId}
+          detail={detail}
+        />
+      ) : (
+        <section className="management-panel">
+          <p className="management-muted">
+            This Client Organization is available as read-only context.
+          </p>
+        </section>
+      )}
     </main>
   );
 }

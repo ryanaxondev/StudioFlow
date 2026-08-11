@@ -13,6 +13,11 @@ test("unauthenticated access surfaces have no automated accessibility violations
 
   const recoveryResults = await new AxeBuilder({ page }).analyze();
   expect(recoveryResults.violations).toEqual([]);
+
+  await page.goto("/access-denied");
+
+  const deniedResults = await new AxeBuilder({ page }).analyze();
+  expect(deniedResults.violations).toEqual([]);
 });
 
 test("invitation acceptance has no automated accessibility violations", async ({

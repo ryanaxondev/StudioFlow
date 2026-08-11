@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { systemClock } from "../../../../lib/clock";
+import { buildActorContext } from "../../../../modules/authorization/server/authorization";
 import { parseAuthenticationEnvironment } from "../../../../modules/auth/environment";
 import { hasTrustedAuthenticationOrigin } from "../../../../modules/auth/origin";
 import { getCurrentStudioFlowSession } from "../../../../modules/auth/server/session";
@@ -59,9 +60,14 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   try {
+    const database = getApplicationDatabase();
+    const actor = await buildActorContext(database, {
+      userId: session.user.id,
+      sessionId: session.session.id,
+    });
     const result = await acceptInvitation({
-      database: getApplicationDatabase(),
-      authenticatedUserId: session.user.id,
+      database,
+      actor,
       token: parsed.data.token,
       clock: systemClock,
     });

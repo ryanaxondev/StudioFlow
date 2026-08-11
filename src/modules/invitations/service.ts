@@ -22,10 +22,11 @@ import { withTransaction } from "../../db/transactions";
 import type { Clock } from "../../lib/clock";
 import { systemClock } from "../../lib/clock";
 import {
-  requireActiveWorkspaceRole,
-  workspaceClientManagerRoles,
-  workspaceOwnerRoles,
-} from "../memberships/service";
+  canManageAgencyMembers,
+  canManageClientMembers,
+} from "../authorization/policies";
+import { authorizeWorkspaceCapability } from "../authorization/server/authorization";
+import type { ActorContext } from "../authorization/types";
 import {
   CLIENT_INVITATION_DELIVERY_EVENT,
   protectInvitationDelivery,
@@ -263,7 +264,7 @@ async function insertInvitationWithDelivery(
 export async function inviteWorkspaceMember(
   options: Readonly<{
     database: DatabaseClient;
-    actorUserId: string;
+    actor: ActorContext;
     workspaceId: string;
     email: string;
     role: WorkspaceRole;
@@ -276,11 +277,12 @@ export async function inviteWorkspaceMember(
   const now = clock.now();
 
   return withTransaction(options.database, async (transaction) => {
-    await requireActiveWorkspaceRole(transaction.db, {
-      workspaceId: options.workspaceId,
-      userId: options.actorUserId,
-      allowedRoles: workspaceOwnerRoles,
-    });
+    await authorizeWorkspaceCapability(
+      transaction.db,
+      options.actor,
+      options.workspaceId,
+      canManageAgencyMembers,
+    );
     await lockInvitationTarget(transaction, {
       workspaceId: options.workspaceId,
       membershipType: "WORKSPACE_MEMBER",
@@ -306,7 +308,7 @@ export async function inviteWorkspaceMember(
       email,
       membershipType: "WORKSPACE_MEMBER",
       intendedRole: options.role,
-      createdByUserId: options.actorUserId,
+      createdByUserId: options.actor.userId,
       now,
       delivery: options.delivery,
     });
@@ -316,7 +318,7 @@ export async function inviteWorkspaceMember(
 export async function inviteClientMember(
   options: Readonly<{
     database: DatabaseClient;
-    actorUserId: string;
+    actor: ActorContext;
     workspaceId: string;
     clientOrganizationId: string;
     email: string;
@@ -329,11 +331,12 @@ export async function inviteClientMember(
   const now = clock.now();
 
   return withTransaction(options.database, async (transaction) => {
-    await requireActiveWorkspaceRole(transaction.db, {
-      workspaceId: options.workspaceId,
-      userId: options.actorUserId,
-      allowedRoles: workspaceClientManagerRoles,
-    });
+    await authorizeWorkspaceCapability(
+      transaction.db,
+      options.actor,
+      options.workspaceId,
+      canManageClientMembers,
+    );
 
     const [organization] = await transaction.db
       .select({ id: clientOrganizations.id })
@@ -376,7 +379,7 @@ export async function inviteClientMember(
       email,
       membershipType: "CLIENT_MEMBER",
       intendedRole: null,
-      createdByUserId: options.actorUserId,
+      createdByUserId: options.actor.userId,
       now,
       delivery: options.delivery,
     });
@@ -423,20 +426,16 @@ async function lockInvitationById(
 async function authorizeInvitationManagement(
   db: TransactionDatabase,
   invitation: LockedInvitationRow,
-  actorUserId: string,
+  actor: ActorContext,
 ): Promise<void> {
-  try {
-    await requireActiveWorkspaceRole(db, {
-      workspaceId: invitation.workspace_id,
-      userId: actorUserId,
-      allowedRoles:
-        invitation.membership_type === "WORKSPACE_MEMBER"
-          ? workspaceOwnerRoles
-          : workspaceClientManagerRoles,
-    });
-  } catch {
-    throw new InvitationError("FORBIDDEN");
-  }
+  await authorizeWorkspaceCapability(
+    db,
+    actor,
+    invitation.workspace_id,
+    invitation.membership_type === "WORKSPACE_MEMBER"
+      ? canManageAgencyMembers
+      : canManageClientMembers,
+  );
 }
 
 async function assertInvitationInviteeIsNotActiveMember(
@@ -466,7 +465,7 @@ async function assertInvitationInviteeIsNotActiveMember(
 export async function resendInvitation(
   options: Readonly<{
     database: DatabaseClient;
-    actorUserId: string;
+    actor: ActorContext;
     invitationId: string;
     delivery: InvitationDeliveryConfiguration;
     clock?: Clock;
@@ -487,7 +486,7 @@ export async function resendInvitation(
     await authorizeInvitationManagement(
       transaction.db,
       invitation,
-      options.actorUserId,
+      options.actor,
     );
 
     if (invitation.accepted_at) {
@@ -527,7 +526,7 @@ export async function resendInvitation(
       email: invitation.email_normalized,
       membershipType: invitation.membership_type,
       intendedRole: invitation.intended_role,
-      createdByUserId: options.actorUserId,
+      createdByUserId: options.actor.userId,
       now,
       delivery: options.delivery,
     });
@@ -537,7 +536,7 @@ export async function resendInvitation(
 export async function revokeInvitation(
   options: Readonly<{
     database: DatabaseClient;
-    actorUserId: string;
+    actor: ActorContext;
     invitationId: string;
     clock?: Clock;
   }>,
@@ -557,7 +556,7 @@ export async function revokeInvitation(
     await authorizeInvitationManagement(
       transaction.db,
       invitation,
-      options.actorUserId,
+      options.actor,
     );
 
     if (
@@ -685,7 +684,7 @@ async function activateMembership(
 export async function acceptInvitation(
   options: Readonly<{
     database: DatabaseClient;
-    authenticatedUserId: string;
+    actor: ActorContext;
     token: string;
     clock?: Clock;
   }>,
@@ -724,7 +723,7 @@ export async function acceptInvitation(
          FROM users
         WHERE id = $1
         LIMIT 1`,
-      [options.authenticatedUserId],
+      [options.actor.userId],
     );
     const user = userResult.rows[0];
     if (
@@ -745,7 +744,7 @@ export async function acceptInvitation(
         await activeAcceptedMembershipExists(
           transaction,
           invitation,
-          options.authenticatedUserId,
+          options.actor.userId,
         )
       ) {
         return {
@@ -767,7 +766,7 @@ export async function acceptInvitation(
     await activateMembership(
       transaction,
       invitation,
-      options.authenticatedUserId,
+      options.actor.userId,
       now,
     );
     await transaction.client.query(

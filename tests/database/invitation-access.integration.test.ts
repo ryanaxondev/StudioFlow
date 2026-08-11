@@ -9,6 +9,7 @@ import {
   vi,
 } from "vitest";
 
+import { testActor } from "../helpers/authorization";
 import { users, workspaceMembers } from "../../src/db/schema";
 import { prepareInvitationAccess } from "../../src/modules/invitations/access-service";
 import type { AuthenticationEmailSender } from "../../src/modules/auth/email";
@@ -19,7 +20,7 @@ import {
   inviteWorkspaceMember,
 } from "../../src/modules/invitations/service";
 import { listWorkspaceMemberManagementState } from "../../src/modules/memberships/queries";
-import { createWorkspaceForControlledSetup } from "../../src/modules/memberships/service";
+import { createWorkspaceForControlledSetup } from "../../src/modules/memberships/setup";
 import { createFixedClock } from "../helpers/clock";
 import { resetPublicSchemaData } from "../helpers/database-reset";
 import {
@@ -90,7 +91,7 @@ describe("M06 invitation access bridge", () => {
 
     const invitation = await inviteWorkspaceMember({
       database: testDatabase.database,
-      actorUserId: owner!.id,
+      actor: testActor(owner!.id),
       workspaceId: workspace.workspaceId,
       email,
       role: "AGENCY_MEMBER",
@@ -276,7 +277,7 @@ describe("M06 invitation access bridge", () => {
     await expect(
       acceptInvitation({
         database: testDatabase.database,
-        authenticatedUserId: verifiedUser!.id,
+        actor: testActor(verifiedUser!.id),
         token: invitation.token,
         clock: baseClock,
       }),
@@ -305,7 +306,10 @@ describe("M06 invitation access bridge", () => {
 
     const state = await listWorkspaceMemberManagementState(
       testDatabase.database,
-      workspace.workspaceId,
+      {
+        workspaceId: workspace.workspaceId,
+        capability: "MANAGE_AGENCY_MEMBERS",
+      },
       expiredClock.now(),
     );
 
@@ -332,7 +336,7 @@ describe("M06 invitation access bridge", () => {
     const { invitation } = await createOwnerAndInvitation(email);
     await acceptInvitation({
       database: testDatabase.database,
-      authenticatedUserId: member!.id,
+      actor: testActor(member!.id),
       token: invitation.token,
       clock: baseClock,
     });

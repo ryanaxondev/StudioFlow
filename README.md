@@ -11,6 +11,7 @@ StudioFlow is a premium client-delivery platform for boutique web design and dev
 - Database and async foundation: `docs/engineering/04-database-and-async-foundation.md`
 - Authentication foundation: `docs/engineering/05-authentication-foundation.md`
 - Invitations and membership bootstrap: `docs/engineering/06-invitations-and-membership-bootstrap.md`
+- Tenant isolation and authorization: `docs/engineering/07-tenant-isolation-and-authorization.md`
 
 ## Roadmap
 
@@ -46,6 +47,7 @@ pnpm format:check
 pnpm lint
 pnpm typecheck
 pnpm test
+pnpm test:authorization
 pnpm build
 ```
 
@@ -69,3 +71,7 @@ Run both the Web application and Worker when manually testing invitation deliver
 pnpm dev
 pnpm dev:worker
 ```
+
+## Authorization foundation
+
+M07 centralizes protected Agency and Client access in server-side policy functions backed by `ActorContext`, authorized Workspace scopes, client-safe projections, and safe Access Denied/not-found behavior. Same-origin authenticated Agency commands use Server Actions and re-check authoritative membership inside their database transaction.

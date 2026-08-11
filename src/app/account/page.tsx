@@ -2,6 +2,12 @@ import { headers } from "next/headers";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import {
+  toAgencyContextProjection,
+  toClientContextProjection,
+} from "../../modules/authorization/projections";
+import { resolveRoleBasedLanding } from "../../modules/authorization/policies";
+import { buildActorContext } from "../../modules/authorization/server/authorization";
 import { SessionRefresh } from "../../modules/auth/components/session-refresh";
 import { SignOutButton } from "../../modules/auth/components/sign-out-button";
 import { getCurrentStudioFlowSession } from "../../modules/auth/server/session";
@@ -26,13 +32,21 @@ export default async function AccountPage() {
     redirect("/access?returnTo=/account");
   }
 
-  const contexts = await listActiveMembershipContextDetails(
-    getApplicationDatabase(),
-    session.user.id,
+  const database = getApplicationDatabase();
+  const [actor, contextDetails] = await Promise.all([
+    buildActorContext(database, {
+      userId: session.user.id,
+      sessionId: session.session.id,
+    }),
+    listActiveMembershipContextDetails(database, session.user.id),
+  ]);
+  const workspaceContexts = contextDetails.workspaceMemberships.map(
+    toAgencyContextProjection,
   );
-  const agencyDestination = contexts.workspaceMemberships.find((membership) =>
-    ["AGENCY_OWNER", "DELIVERY_MANAGER"].includes(membership.role),
+  const clientContexts = contextDetails.clientMemberships.map(
+    toClientContextProjection,
   );
+  const landing = resolveRoleBasedLanding(actor);
 
   return (
     <main className="auth-shell">
@@ -60,13 +74,13 @@ export default async function AccountPage() {
           aria-labelledby="workspace-context-heading"
         >
           <h2 id="workspace-context-heading">Workspace contexts</h2>
-          {contexts.workspaceMemberships.length === 0 ? (
+          {workspaceContexts.length === 0 ? (
             <p className="management-muted">
               No active Agency Workspace membership.
             </p>
           ) : (
             <div className="account-context-list">
-              {contexts.workspaceMemberships.map((membership) => (
+              {workspaceContexts.map((membership) => (
                 <article key={membership.workspaceId}>
                   <strong>{membership.workspaceName}</strong>
                   <span>{workspaceRoleLabel(membership.role)}</span>
@@ -81,13 +95,13 @@ export default async function AccountPage() {
           aria-labelledby="client-context-heading"
         >
           <h2 id="client-context-heading">Client contexts</h2>
-          {contexts.clientMemberships.length === 0 ? (
+          {clientContexts.length === 0 ? (
             <p className="management-muted">
               No active Client Organization membership.
             </p>
           ) : (
             <div className="account-context-list">
-              {contexts.clientMemberships.map((membership) => (
+              {clientContexts.map((membership) => (
                 <article key={membership.clientOrganizationId}>
                   <strong>{membership.clientOrganizationName}</strong>
                   <span>{membership.workspaceName}</span>
@@ -98,16 +112,13 @@ export default async function AccountPage() {
         </section>
 
         <div className="auth-actions">
-          {agencyDestination ? (
-            <Link
-              className="auth-primary-link"
-              href={`/agency/clients?workspaceId=${agencyDestination.workspaceId}`}
-            >
-              Open Agency Workspace
-            </Link>
-          ) : (
+          {landing.surface === "ACCOUNT" ? (
             <Link className="auth-text-link" href="/">
               Return to product
+            </Link>
+          ) : (
+            <Link className="auth-primary-link" href={landing.href}>
+              {landing.label}
             </Link>
           )}
           <SignOutButton />

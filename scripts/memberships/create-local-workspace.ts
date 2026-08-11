@@ -4,7 +4,7 @@ import { z } from "zod";
 import { createDatabaseClient } from "../../src/db/client";
 import { parseApplicationDatabaseEnvironment } from "../../src/db/config";
 import { users, workspaceMembers, workspaces } from "../../src/db/schema";
-import { createWorkspaceForControlledSetup } from "../../src/modules/memberships/service";
+import { createWorkspaceForControlledSetup } from "../../src/modules/memberships/setup";
 
 const inputSchema = z.object({
   ownerEmail: z.string().trim().toLowerCase().email(),

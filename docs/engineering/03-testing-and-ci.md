@@ -9,13 +9,14 @@ M03 establishes automated quality gates before domain implementation begins. It 
 ```bash
 pnpm test
 pnpm test:unit
+pnpm test:authorization
 pnpm test:integration
 pnpm test:database
 pnpm test:e2e
 pnpm test:a11y
 ```
 
-`pnpm test` intentionally runs the fast Vitest unit and in-process integration layers. Database and browser checks stay explicit because they require local services or a browser runtime.
+`pnpm test` intentionally runs the fast Vitest unit, authorization-policy, and in-process integration layers. Database and browser checks stay explicit because they require local services or a browser runtime.
 
 ## PostgreSQL test database
 
@@ -39,6 +40,7 @@ The reset helper truncates public-schema tables with `RESTART IDENTITY CASCADE`.
 - Application time comes through the `Clock` interface; tests use a fixed Clock.
 - M05 authentication integration tests exercise the real Better Auth adapter against disposable PostgreSQL; the lightweight authentication stub remains available for unrelated module tests that do not own authentication behavior.
 - Worker processors are exercised through the processor harness without starting the long-running Worker process.
+- M07 keeps the pure authorization policy matrix in the static gate; authoritative tenant/revocation behavior remains in the PostgreSQL database gate.
 
 See `tests/README.md` for directory conventions.
 
@@ -67,7 +69,7 @@ M03 defines future visual baselines under `tests/visual/baselines/` but adds no 
 pnpm db:migrations:validate
 ```
 
-The validator enforces contiguous numeric migration prefixes and the Approved filenames for migrations `0001` through `0019`. M06 currently implements and permits `0001` through `0005`; later Milestones advance that ceiling only when their Approved migrations are introduced.
+The validator enforces contiguous numeric migration prefixes and the Approved filenames for migrations `0001` through `0019`. M07 retains the implemented migration ceiling at `0001` through `0005`; later Milestones advance that ceiling only when their Approved migrations are introduced.
 
 ## Bundle budgets
 
@@ -117,3 +119,7 @@ The bundle reporter starts a production Web process solely to measure initial br
 ## M06 invitation browser coverage
 
 M06 adds browser smoke and accessibility coverage for the invitation acceptance surface. These browser tests stub the invitation HTTP boundary and therefore do not require PostgreSQL in the existing E2E/accessibility CI jobs. Authoritative invitation lifecycle, invitation-only identity creation, membership activation, concurrency, and revocation remain covered by the PostgreSQL database gate.
+
+## M07 authorization gate
+
+The static CI job runs `pnpm test:authorization` after unit tests. This keeps the role/capability matrix fast and database-independent. PostgreSQL authorization-boundary tests run through `pnpm test:database` and prove that policy inputs are refreshed from authoritative membership for protected writes, including removed and cross-Workspace actors.

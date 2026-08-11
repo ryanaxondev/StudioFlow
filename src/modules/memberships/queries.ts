@@ -1,6 +1,7 @@
-import { and, asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, isNull } from "drizzle-orm";
 
 import type { DatabaseClient } from "../../db/client";
+import type { AuthorizedWorkspaceScope } from "../authorization/types";
 import {
   clientMembers,
   clientOrganizations,
@@ -11,6 +12,66 @@ import {
   type WorkspaceRole,
 } from "../../db/schema";
 
+export type ActiveMembershipContexts = Readonly<{
+  workspaceMemberships: readonly Readonly<{
+    workspaceId: string;
+    role: WorkspaceRole;
+  }>[];
+  clientMemberships: readonly Readonly<{
+    workspaceId: string;
+    clientOrganizationId: string;
+  }>[];
+}>;
+
+export async function resolveActiveMembershipContexts(
+  database: DatabaseClient,
+  userId: string,
+): Promise<ActiveMembershipContexts> {
+  const [workspaceRows, clientRows] = await Promise.all([
+    database.db
+      .select({
+        workspaceId: workspaceMembers.workspaceId,
+        role: workspaceMembers.role,
+      })
+      .from(workspaceMembers)
+      .innerJoin(users, eq(users.id, workspaceMembers.userId))
+      .where(
+        and(
+          eq(workspaceMembers.userId, userId),
+          eq(workspaceMembers.status, "ACTIVE"),
+          isNull(users.disabledAt),
+        ),
+      ),
+    database.db
+      .select({
+        workspaceId: clientMembers.workspaceId,
+        clientOrganizationId: clientMembers.clientOrganizationId,
+      })
+      .from(clientMembers)
+      .innerJoin(users, eq(users.id, clientMembers.userId))
+      .innerJoin(
+        clientOrganizations,
+        and(
+          eq(clientOrganizations.id, clientMembers.clientOrganizationId),
+          eq(clientOrganizations.workspaceId, clientMembers.workspaceId),
+        ),
+      )
+      .where(
+        and(
+          eq(clientMembers.userId, userId),
+          eq(clientMembers.status, "ACTIVE"),
+          eq(clientOrganizations.status, "ACTIVE"),
+          isNull(users.disabledAt),
+        ),
+      ),
+  ]);
+
+  return {
+    workspaceMemberships: workspaceRows,
+    clientMemberships: clientRows,
+  };
+}
+
 export type WorkspaceContextDetail = Readonly<{
   workspaceId: string;
   workspaceName: string;
@@ -18,7 +79,6 @@ export type WorkspaceContextDetail = Readonly<{
 }>;
 
 export type ClientContextDetail = Readonly<{
-  workspaceId: string;
   workspaceName: string;
   clientOrganizationId: string;
   clientOrganizationName: string;
@@ -41,22 +101,24 @@ export async function listActiveMembershipContextDetails(
         role: workspaceMembers.role,
       })
       .from(workspaceMembers)
+      .innerJoin(users, eq(users.id, workspaceMembers.userId))
       .innerJoin(workspaces, eq(workspaces.id, workspaceMembers.workspaceId))
       .where(
         and(
           eq(workspaceMembers.userId, userId),
           eq(workspaceMembers.status, "ACTIVE"),
+          isNull(users.disabledAt),
         ),
       )
       .orderBy(asc(workspaces.name), asc(workspaceMembers.workspaceId)),
     database.db
       .select({
-        workspaceId: clientMembers.workspaceId,
         workspaceName: workspaces.name,
         clientOrganizationId: clientMembers.clientOrganizationId,
         clientOrganizationName: clientOrganizations.name,
       })
       .from(clientMembers)
+      .innerJoin(users, eq(users.id, clientMembers.userId))
       .innerJoin(
         clientOrganizations,
         and(
@@ -70,6 +132,7 @@ export async function listActiveMembershipContextDetails(
           eq(clientMembers.userId, userId),
           eq(clientMembers.status, "ACTIVE"),
           eq(clientOrganizations.status, "ACTIVE"),
+          isNull(users.disabledAt),
         ),
       )
       .orderBy(
@@ -83,44 +146,6 @@ export async function listActiveMembershipContextDetails(
     workspaceMemberships: workspaceRows,
     clientMemberships: clientRows,
   };
-}
-
-export type AgencyWorkspaceSelection = Readonly<{
-  selected: WorkspaceContextDetail;
-  options: readonly WorkspaceContextDetail[];
-}>;
-
-export async function resolveAgencyWorkspaceSelection(
-  database: DatabaseClient,
-  input: Readonly<{
-    userId: string;
-    requestedWorkspaceId?: string;
-    allowedRoles: ReadonlySet<WorkspaceRole>;
-  }>,
-): Promise<AgencyWorkspaceSelection | null> {
-  const contexts = await listActiveMembershipContextDetails(
-    database,
-    input.userId,
-  );
-  const eligible = contexts.workspaceMemberships.filter((membership) =>
-    input.allowedRoles.has(membership.role),
-  );
-
-  if (eligible.length === 0) {
-    return null;
-  }
-
-  const selected = input.requestedWorkspaceId
-    ? eligible.find(
-        (membership) => membership.workspaceId === input.requestedWorkspaceId,
-      )
-    : eligible[0];
-
-  if (!selected) {
-    return null;
-  }
-
-  return { selected, options: eligible };
 }
 
 export type WorkspaceMemberListItem = Readonly<{
@@ -174,7 +199,7 @@ function latestActionableInvitations(
 
 export async function listWorkspaceMemberManagementState(
   database: DatabaseClient,
-  workspaceId: string,
+  scope: AuthorizedWorkspaceScope<"MANAGE_AGENCY_MEMBERS">,
   now: Date,
 ): Promise<
   Readonly<{
@@ -195,7 +220,7 @@ export async function listWorkspaceMemberManagementState(
       .innerJoin(users, eq(users.id, workspaceMembers.userId))
       .where(
         and(
-          eq(workspaceMembers.workspaceId, workspaceId),
+          eq(workspaceMembers.workspaceId, scope.workspaceId),
           eq(workspaceMembers.status, "ACTIVE"),
         ),
       )
@@ -212,7 +237,7 @@ export async function listWorkspaceMemberManagementState(
       .from(invitations)
       .where(
         and(
-          eq(invitations.workspaceId, workspaceId),
+          eq(invitations.workspaceId, scope.workspaceId),
           eq(invitations.membershipType, "WORKSPACE_MEMBER"),
         ),
       )
@@ -234,7 +259,7 @@ export type ClientOrganizationListItem = Readonly<{
 
 export async function listClientOrganizationsForWorkspace(
   database: DatabaseClient,
-  workspaceId: string,
+  scope: AuthorizedWorkspaceScope<"VIEW_CLIENT_ORGANIZATIONS">,
 ): Promise<readonly ClientOrganizationListItem[]> {
   const [organizations, members] = await Promise.all([
     database.db
@@ -244,7 +269,7 @@ export async function listClientOrganizationsForWorkspace(
         status: clientOrganizations.status,
       })
       .from(clientOrganizations)
-      .where(eq(clientOrganizations.workspaceId, workspaceId))
+      .where(eq(clientOrganizations.workspaceId, scope.workspaceId))
       .orderBy(asc(clientOrganizations.name)),
     database.db
       .select({
@@ -253,7 +278,7 @@ export async function listClientOrganizationsForWorkspace(
       .from(clientMembers)
       .where(
         and(
-          eq(clientMembers.workspaceId, workspaceId),
+          eq(clientMembers.workspaceId, scope.workspaceId),
           eq(clientMembers.status, "ACTIVE"),
         ),
       ),
@@ -290,7 +315,7 @@ export type ClientOrganizationDetail = Readonly<{
 export async function getClientOrganizationDetail(
   database: DatabaseClient,
   input: Readonly<{
-    workspaceId: string;
+    scope: AuthorizedWorkspaceScope<"VIEW_CLIENT_ORGANIZATION">;
     clientOrganizationId: string;
     now: Date;
   }>,
@@ -306,7 +331,7 @@ export async function getClientOrganizationDetail(
     .where(
       and(
         eq(clientOrganizations.id, input.clientOrganizationId),
-        eq(clientOrganizations.workspaceId, input.workspaceId),
+        eq(clientOrganizations.workspaceId, input.scope.workspaceId),
       ),
     )
     .limit(1);
@@ -327,7 +352,7 @@ export async function getClientOrganizationDetail(
       .innerJoin(users, eq(users.id, clientMembers.userId))
       .where(
         and(
-          eq(clientMembers.workspaceId, input.workspaceId),
+          eq(clientMembers.workspaceId, input.scope.workspaceId),
           eq(clientMembers.clientOrganizationId, input.clientOrganizationId),
           eq(clientMembers.status, "ACTIVE"),
         ),
@@ -345,7 +370,7 @@ export async function getClientOrganizationDetail(
       .from(invitations)
       .where(
         and(
-          eq(invitations.workspaceId, input.workspaceId),
+          eq(invitations.workspaceId, input.scope.workspaceId),
           eq(invitations.clientOrganizationId, input.clientOrganizationId),
           eq(invitations.membershipType, "CLIENT_MEMBER"),
         ),

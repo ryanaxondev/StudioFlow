@@ -3,6 +3,7 @@
 ## Test layers
 
 - `unit/`: pure logic and boundary tests; no network or database.
+- `authorization/`: pure role/capability matrix tests for the server-side authorization model.
 - `integration/`: component and in-process integration tests; no shared external state.
 - `database/`: tests against disposable PostgreSQL databases; suites apply the real release migrations before exercising persistence behavior.
 - `e2e/`: narrow browser smoke tests.
@@ -38,3 +39,7 @@ Authentication UI smoke and accessibility coverage live beside the existing brow
 ### M06 invitation access bridge
 
 The database suite verifies the invitation-only identity bridge for existing and newly invited identities, including display-name gating, expired-link rejection, Magic Link return to the original invitation, and accepted-state presentation. Browser smoke tests cover the invitation screen states with a stubbed HTTP boundary so browser CI remains independent from PostgreSQL.
+
+## M07 authorization coverage
+
+`tests/authorization/policy-matrix.test.ts` exercises the Workspace/Project policy interface for Agency Owner, Delivery Manager, Agency Member, Client, cross-Workspace, and removed-user scenarios. `tests/database/authorization-boundary.integration.test.ts` proves ActorContext is derived from authoritative active membership, cross-tenant requests fail closed, insufficient known-role access resolves to Access Denied semantics, stale ActorContext cannot authorize a write after revocation, and disabled identities lose membership authority. Unauthenticated behavior remains the authentication layer and is exercised by the existing access/browser boundary rather than by fabricating an ActorContext.

@@ -3,6 +3,11 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import {
+  createInvitationAction,
+  updateInvitationAction,
+  updateWorkspaceMemberAction,
+} from "../actions";
 import type {
   ManageableInvitationListItem,
   WorkspaceMemberListItem,
@@ -31,19 +36,14 @@ export function WorkspaceMemberManagement({
     setStatus("");
 
     try {
-      const response = await fetch("/api/agency/invitations", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          membershipType: "WORKSPACE_MEMBER",
-          workspaceId,
-          email: String(form.get("email") ?? ""),
-          role: String(form.get("role") ?? "AGENCY_MEMBER"),
-        }),
+      const result = await createInvitationAction({
+        membershipType: "WORKSPACE_MEMBER",
+        workspaceId,
+        email: String(form.get("email") ?? ""),
+        role: String(form.get("role") ?? "AGENCY_MEMBER"),
       });
-      const payload = (await response.json()) as { status?: string };
-      if (!response.ok) {
-        setStatus(payload.status ?? "Invite failed");
+      if (!result.ok) {
+        setStatus(result.status ?? "Invite failed");
         return;
       }
       formElement.reset();
@@ -63,20 +63,15 @@ export function WorkspaceMemberManagement({
     setPending(true);
     setStatus("");
     try {
-      const response = await fetch(`/api/agency/invitations/${invitationId}`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ action }),
-      });
-      const payload = (await response.json()) as { status?: string };
+      const result = await updateInvitationAction({ invitationId, action });
       setStatus(
-        response.ok
+        result.ok
           ? action === "resend"
             ? "Invitation resent"
             : "Invitation revoked"
-          : (payload.status ?? "Update failed"),
+          : (result.status ?? "Update failed"),
       );
-      if (response.ok) router.refresh();
+      if (result.ok) router.refresh();
     } catch {
       setStatus("Service error");
     } finally {
@@ -94,22 +89,18 @@ export function WorkspaceMemberManagement({
     setStatus("");
 
     try {
-      const response = await fetch(`/api/agency/workspace-members/${userId}`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          workspaceId,
-          action: "change-role",
-          role: String(form.get("role") ?? ""),
-        }),
+      const result = await updateWorkspaceMemberAction({
+        workspaceId,
+        targetUserId: userId,
+        action: "change-role",
+        role: String(form.get("role") ?? ""),
       });
-      const payload = (await response.json()) as { status?: string };
       setStatus(
-        response.ok
+        result.ok
           ? "Workspace role updated"
-          : (payload.status ?? "Role update failed"),
+          : (result.status ?? "Role update failed"),
       );
-      if (response.ok) router.refresh();
+      if (result.ok) router.refresh();
     } catch {
       setStatus("Service error");
     } finally {
@@ -121,16 +112,15 @@ export function WorkspaceMemberManagement({
     setPending(true);
     setStatus("");
     try {
-      const response = await fetch(`/api/agency/workspace-members/${userId}`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ workspaceId, action: "revoke" }),
+      const result = await updateWorkspaceMemberAction({
+        workspaceId,
+        targetUserId: userId,
+        action: "revoke",
       });
-      const payload = (await response.json()) as { status?: string };
       setStatus(
-        response.ok ? "Access removed" : (payload.status ?? "Removal failed"),
+        result.ok ? "Access removed" : (result.status ?? "Removal failed"),
       );
-      if (response.ok) router.refresh();
+      if (result.ok) router.refresh();
     } catch {
       setStatus("Service error");
     } finally {

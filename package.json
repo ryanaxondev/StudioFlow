@@ -9,7 +9,7 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write --ignore-unknown .",
-    "test": "vitest run tests/unit tests/integration",
+    "test": "vitest run tests/unit tests/authorization tests/integration",
     "dev:worker": "tsx worker/index.ts",
     "format:check": "prettier --check --ignore-unknown .",
     "build:web": "next build",
@@ -34,7 +34,7 @@
     "db:migrations:validate": "node scripts/ci/validate-migrations.mjs",
     "bundle:report": "node scripts/ci/report-bundles.mjs",
     "bundle:analyze": "next experimental-analyze --output",
-    "ci:static": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test:unit",
+    "ci:static": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test:unit && pnpm test:authorization",
     "ci:database": "pnpm db:migrations:validate && pnpm test:database",
     "ci:integration": "pnpm test:integration",
     "ci:build": "pnpm build",
@@ -44,7 +44,8 @@
     "db:generate": "drizzle-kit generate --config=drizzle.config.ts",
     "db:migrate": "tsx scripts/db/migrate.ts",
     "auth:local-user": "tsx scripts/auth/create-local-user.ts",
-    "workspace:local-setup": "tsx scripts/memberships/create-local-workspace.ts"
+    "workspace:local-setup": "tsx scripts/memberships/create-local-workspace.ts",
+    "test:authorization": "vitest run tests/authorization"
   },
   "dependencies": {
     "better-auth": "1.6.25",

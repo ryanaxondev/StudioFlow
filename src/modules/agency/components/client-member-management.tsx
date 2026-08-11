@@ -3,6 +3,11 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import {
+  createInvitationAction,
+  revokeClientMemberAction,
+  updateInvitationAction,
+} from "../actions";
 import type { ClientOrganizationDetail } from "../../memberships/queries";
 
 export function ClientMemberManagement({
@@ -25,19 +30,14 @@ export function ClientMemberManagement({
     setPending(true);
     setStatus("");
     try {
-      const response = await fetch("/api/agency/invitations", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          membershipType: "CLIENT_MEMBER",
-          workspaceId,
-          clientOrganizationId,
-          email: String(form.get("email") ?? ""),
-        }),
+      const result = await createInvitationAction({
+        membershipType: "CLIENT_MEMBER",
+        workspaceId,
+        clientOrganizationId,
+        email: String(form.get("email") ?? ""),
       });
-      const payload = (await response.json()) as { status?: string };
-      if (!response.ok) {
-        setStatus(payload.status ?? "Invite failed");
+      if (!result.ok) {
+        setStatus(result.status ?? "Invite failed");
         return;
       }
       formElement.reset();
@@ -57,20 +57,15 @@ export function ClientMemberManagement({
     setPending(true);
     setStatus("");
     try {
-      const response = await fetch(`/api/agency/invitations/${invitationId}`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ action }),
-      });
-      const payload = (await response.json()) as { status?: string };
+      const result = await updateInvitationAction({ invitationId, action });
       setStatus(
-        response.ok
+        result.ok
           ? action === "resend"
             ? "Invitation resent"
             : "Invitation revoked"
-          : (payload.status ?? "Update failed"),
+          : (result.status ?? "Update failed"),
       );
-      if (response.ok) router.refresh();
+      if (result.ok) router.refresh();
     } catch {
       setStatus("Service error");
     } finally {
@@ -82,21 +77,17 @@ export function ClientMemberManagement({
     setPending(true);
     setStatus("");
     try {
-      const response = await fetch(
-        `/api/agency/clients/${clientOrganizationId}/members/${userId}`,
-        {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ workspaceId, action: "revoke" }),
-        },
-      );
-      const payload = (await response.json()) as { status?: string };
+      const result = await revokeClientMemberAction({
+        workspaceId,
+        clientOrganizationId,
+        targetUserId: userId,
+      });
       setStatus(
-        response.ok
+        result.ok
           ? "Client access removed"
-          : (payload.status ?? "Removal failed"),
+          : (result.status ?? "Removal failed"),
       );
-      if (response.ok) router.refresh();
+      if (result.ok) router.refresh();
     } catch {
       setStatus("Service error");
     } finally {
