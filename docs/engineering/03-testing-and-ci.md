@@ -37,7 +37,7 @@ The reset helper truncates public-schema tables with `RESTART IDENTITY CASCADE`.
 - Factories return deterministic valid defaults and accept explicit overrides.
 - Factories do not perform hidden database or network I/O.
 - Application time comes through the `Clock` interface; tests use a fixed Clock.
-- Authentication tests use the local test stub until the real authentication adapter arrives.
+- M05 authentication integration tests exercise the real Better Auth adapter against disposable PostgreSQL; the lightweight authentication stub remains available for unrelated module tests that do not own authentication behavior.
 - Worker processors are exercised through the processor harness without starting the long-running Worker process.
 
 See `tests/README.md` for directory conventions.
@@ -111,4 +111,4 @@ The workflow has a manual `force_static_failure` input. Run the CI workflow manu
 
 ### Bundle-budget production runtime
 
-The bundle reporter starts a production Web process solely to measure initial browser JavaScript. When CI does not provide an application database URL, the reporter supplies a syntactically valid non-secret measurement URL. The measured `/` route and liveness endpoint do not establish a database connection. Production deployments still require the real Web `DATABASE_URL` through startup validation.
+The bundle reporter starts a production Web process solely to measure initial browser JavaScript. When CI does not provide application database or authentication runtime values, the reporter supplies syntactically valid non-secret measurement values. The measured `/` route and liveness endpoint do not establish a database or authentication session. Production deployments still require the real Web `DATABASE_URL`, `BETTER_AUTH_URL`, `BETTER_AUTH_SECRET`, and `AUTH_MESSAGE_ENCRYPTION_SECRET` through startup validation.

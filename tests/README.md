@@ -24,3 +24,9 @@ Automatic failure screenshots, traces, and videos belong in ignored `test-result
 ## Migrated database convention
 
 Use `createMigratedTestDatabase()` for suites that exercise real StudioFlow persistence. It creates a uniquely named disposable database, applies the committed release migrations, exposes a pooled Drizzle client, and drops the database at teardown. `resetPublicSchemaData()` preserves `studioflow_migrations` while truncating application tables between tests.
+
+## M05 authentication coverage
+
+`tests/database/authentication.integration.test.ts` exercises the passwordless authentication foundation against disposable PostgreSQL, including hashed/single-use Magic Links, protected Outbox delivery, session lifecycle, account disable, redirect preservation, and the database-backed request limiter.
+
+Authentication UI smoke and accessibility coverage live beside the existing browser gates.

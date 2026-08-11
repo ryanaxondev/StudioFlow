@@ -9,12 +9,13 @@ StudioFlow is a premium client-delivery platform for boutique web design and dev
 - Local development: `docs/engineering/02-local-development.md`
 - Testing and CI: `docs/engineering/03-testing-and-ci.md`
 - Database and async foundation: `docs/engineering/04-database-and-async-foundation.md`
+- Authentication foundation: `docs/engineering/05-authentication-foundation.md`
 
 ## Roadmap
 
 Implementation follows `M00 → M01 → ... → M24` as defined in `docs/engineering/01-implementation-roadmap.md`.
 
-Current milestone: **M04 — Database and Async Foundation**
+Current milestone: **M05 — Authentication Foundation**
 
 ## Application
 
@@ -50,3 +51,13 @@ pnpm build
 ```
 
 Database and browser gates are documented in `docs/engineering/03-testing-and-ci.md`.
+
+## Authentication foundation
+
+M05 adds existing-user passwordless Email Magic Link authentication with Better Auth, protected Outbox delivery through the Worker to local Mailpit, database-backed sessions and rate limiting, and the `/access`, `/account`, and `/recover-access` identity surfaces. See `docs/engineering/05-authentication-foundation.md`.
+
+Create a local identity for the M05 smoke flow with:
+
+```bash
+pnpm auth:local-user --email developer@example.com --name "Developer"
+```

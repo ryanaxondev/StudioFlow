@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -H 127.0.0.1 -p 3000",
     "build": "pnpm build:web && pnpm build:worker",
     "start": "next start",
     "lint": "eslint",
@@ -42,16 +42,18 @@
     "ci:a11y": "pnpm test:a11y",
     "ci:bundle": "pnpm build:web && pnpm bundle:report",
     "db:generate": "drizzle-kit generate --config=drizzle.config.ts",
-    "db:migrate": "tsx scripts/db/migrate.ts"
+    "db:migrate": "tsx scripts/db/migrate.ts",
+    "auth:local-user": "tsx scripts/auth/create-local-user.ts"
   },
   "dependencies": {
+    "better-auth": "1.6.25",
+    "drizzle-orm": "0.45.2",
     "next": "16.2.11",
+    "pg": "8.22.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "server-only": "^0.0.1",
-    "zod": "^4.4.3",
-    "drizzle-orm": "0.45.2",
-    "pg": "8.22.0"
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.12.1",

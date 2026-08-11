@@ -3,19 +3,34 @@ import { randomUUID } from "node:crypto";
 import { createDatabaseClient } from "../../src/db/client";
 import { parseWorkerDatabaseEnvironment } from "../../src/db/config";
 import { systemClock } from "../../src/lib/clock";
+import { createRuntimeAuthenticationEmailTransport } from "../../src/modules/auth/email";
+import { parseAuthenticationMessageEnvironment } from "../../src/modules/auth/environment";
 import { logger } from "../../src/server/observability/logger";
+import { createAuthenticationEmailProcessor } from "../processors/authentication-email";
 import { runOutboxWorker } from "./outbox-worker";
 import { ProcessorRegistry } from "./registry";
 
 export async function startWorker(): Promise<void> {
-  const environment = parseWorkerDatabaseEnvironment(process.env);
+  const databaseEnvironment = parseWorkerDatabaseEnvironment(process.env);
+  const authenticationMessageEnvironment =
+    parseAuthenticationMessageEnvironment(process.env);
   const database = createDatabaseClient({
-    connectionString: environment.WORKER_DATABASE_URL,
+    connectionString: databaseEnvironment.WORKER_DATABASE_URL,
     applicationName: "studioflow-worker",
   });
   const registry = new ProcessorRegistry();
   const shutdownController = new AbortController();
   const workerId = `worker-${randomUUID()}`;
+
+  registry.register(
+    createAuthenticationEmailProcessor({
+      encryptionSecret:
+        authenticationMessageEnvironment.AUTH_MESSAGE_ENCRYPTION_SECRET,
+      emailTransport: createRuntimeAuthenticationEmailTransport(
+        authenticationMessageEnvironment.NODE_ENV,
+      ),
+    }),
+  );
 
   const requestShutdown = (signal: string) => {
     logger.info("worker.shutdown.requested", { signal, workerId });

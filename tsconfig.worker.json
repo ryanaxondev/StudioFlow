@@ -14,6 +14,9 @@
   "include": [
     "worker/**/*.ts",
     "src/db/**/*.ts",
+    "src/modules/auth/email.ts",
+    "src/modules/auth/email-outbox.ts",
+    "src/modules/auth/environment.ts",
     "src/server/observability/**/*.ts"
   ],
   "exclude": ["node_modules"]

@@ -16,6 +16,12 @@ const baseUrl = `http://${host}:${port}`;
 const bundleReportDatabaseUrl =
   process.env.DATABASE_URL ??
   "postgresql://bundle_report:bundle_report@127.0.0.1:5432/studioflow_bundle_report";
+const bundleReportAuthSecret =
+  process.env.BETTER_AUTH_SECRET ??
+  "studioflow-bundle-report-auth-secret-not-for-production";
+const bundleReportAuthMessageSecret =
+  process.env.AUTH_MESSAGE_ENCRYPTION_SECRET ??
+  "studioflow-bundle-report-auth-message-secret-not-for-production";
 
 // M03 has no Product routes yet. Add concrete routes here as P0 Screens land.
 // The Image Review allowance is reserved now so the CI contract is stable.
@@ -174,6 +180,9 @@ const server = spawn(
       ...process.env,
       NODE_ENV: "production",
       DATABASE_URL: bundleReportDatabaseUrl,
+      BETTER_AUTH_URL: baseUrl,
+      BETTER_AUTH_SECRET: bundleReportAuthSecret,
+      AUTH_MESSAGE_ENCRYPTION_SECRET: bundleReportAuthMessageSecret,
       NEXT_TELEMETRY_DISABLED: "1",
     },
     stdio: ["ignore", "pipe", "pipe"],
