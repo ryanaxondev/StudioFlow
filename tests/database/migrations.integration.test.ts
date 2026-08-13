@@ -13,9 +13,10 @@ const approvedImplementedMigrations = [
   "0003_outbox_and_idempotency.sql",
   "0004_workspaces_and_members.sql",
   "0005_clients_and_invitations.sql",
+  "0006_projects_memberships_and_activity.sql",
 ] as const;
 
-describe.sequential("migration integrity through M06", () => {
+describe.sequential("migration integrity through M09", () => {
   it("applies all implemented migrations to an empty database", async () => {
     const database = await createDisposableTestDatabase();
 
@@ -43,11 +44,14 @@ describe.sequential("migration integrity through M06", () => {
         );
         expect(tables.rows.map((row) => row.tablename)).toEqual([
           "accounts",
+          "activity_events",
           "client_members",
           "client_organizations",
           "idempotency_records",
           "invitations",
           "outbox_events",
+          "project_members",
+          "projects",
           "sessions",
           "studioflow_migrations",
           "users",
@@ -87,13 +91,13 @@ describe.sequential("migration integrity through M06", () => {
       });
 
       expect(replay.applied).toEqual([]);
-      expect(replay.skipped).toHaveLength(5);
+      expect(replay.skipped).toHaveLength(6);
     } finally {
       await database.drop();
     }
   });
 
-  it("applies M06 migrations incrementally after the M04 schema", async () => {
+  it("applies later migrations incrementally after the async foundation", async () => {
     const database = await createDisposableTestDatabase();
 
     try {
@@ -112,7 +116,7 @@ describe.sequential("migration integrity through M06", () => {
 
       const files = await readMigrationFiles();
       expect(files.map((migration) => migration.version)).toEqual([
-        1, 2, 3, 4, 5,
+        1, 2, 3, 4, 5, 6,
       ]);
       expect(files.slice(0, 3).map((migration) => migration.name)).toEqual(
         approvedImplementedMigrations.slice(0, 3),

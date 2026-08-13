@@ -6,6 +6,7 @@ import {
   clientMembers,
   clientOrganizations,
   invitations,
+  projects,
   users,
   workspaceBranding,
   workspaceMembers,
@@ -256,13 +257,14 @@ export type ClientOrganizationListItem = Readonly<{
   name: string;
   status: "ACTIVE" | "ARCHIVED";
   activeMemberCount: number;
+  projectCount: number;
 }>;
 
 export async function listClientOrganizationsForWorkspace(
   database: DatabaseClient,
   scope: AuthorizedWorkspaceScope<"VIEW_CLIENT_ORGANIZATIONS">,
 ): Promise<readonly ClientOrganizationListItem[]> {
-  const [organizations, members] = await Promise.all([
+  const [organizations, members, projectRows] = await Promise.all([
     database.db
       .select({
         clientOrganizationId: clientOrganizations.id,
@@ -283,19 +285,34 @@ export async function listClientOrganizationsForWorkspace(
           eq(clientMembers.status, "ACTIVE"),
         ),
       ),
+    database.db
+      .select({
+        clientOrganizationId: projects.clientOrganizationId,
+      })
+      .from(projects)
+      .where(eq(projects.workspaceId, scope.workspaceId)),
   ]);
 
-  const counts = new Map<string, number>();
+  const memberCounts = new Map<string, number>();
   for (const member of members) {
-    counts.set(
+    memberCounts.set(
       member.clientOrganizationId,
-      (counts.get(member.clientOrganizationId) ?? 0) + 1,
+      (memberCounts.get(member.clientOrganizationId) ?? 0) + 1,
+    );
+  }
+
+  const projectCounts = new Map<string, number>();
+  for (const project of projectRows) {
+    projectCounts.set(
+      project.clientOrganizationId,
+      (projectCounts.get(project.clientOrganizationId) ?? 0) + 1,
     );
   }
 
   return organizations.map((organization) => ({
     ...organization,
-    activeMemberCount: counts.get(organization.clientOrganizationId) ?? 0,
+    activeMemberCount: memberCounts.get(organization.clientOrganizationId) ?? 0,
+    projectCount: projectCounts.get(organization.clientOrganizationId) ?? 0,
   }));
 }
 

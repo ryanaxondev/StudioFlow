@@ -4,19 +4,75 @@ import type { DatabaseClient } from "../../db/client";
 import {
   clientMembers,
   clientOrganizations,
+  projects,
   workspaceMembers,
   type WorkspaceRole,
 } from "../../db/schema";
-import { withTransaction } from "../../db/transactions";
+import {
+  withTransaction,
+  type TransactionDatabase,
+} from "../../db/transactions";
 import type { Clock } from "../../lib/clock";
 import { systemClock } from "../../lib/clock";
 import {
   canCreateClientOrganization,
   canManageAgencyMembers,
-  canManageClientMembers,
 } from "../authorization/policies";
 import { authorizeWorkspaceCapability } from "../authorization/server/authorization";
 import type { ActorContext } from "../authorization/types";
+import { authorizeClientOrganizationCapability } from "../projects/client-organization-authorization";
+
+export class RequiredProjectAuthorityError extends Error {
+  constructor() {
+    super(
+      "The membership cannot change while this person holds required Project authority.",
+    );
+    this.name = "RequiredProjectAuthorityError";
+  }
+}
+
+async function assertWorkspaceAuthorityCanChange(
+  db: TransactionDatabase,
+  workspaceId: string,
+  userId: string,
+  nextRole: WorkspaceRole | null,
+): Promise<void> {
+  if (nextRole === "AGENCY_OWNER" || nextRole === "DELIVERY_MANAGER") return;
+
+  const [required] = await db
+    .select({ projectId: projects.id })
+    .from(projects)
+    .where(
+      and(
+        eq(projects.workspaceId, workspaceId),
+        eq(projects.deliveryManagerUserId, userId),
+      ),
+    )
+    .limit(1);
+
+  if (required) throw new RequiredProjectAuthorityError();
+}
+
+async function assertClientAuthorityCanBeRevoked(
+  db: TransactionDatabase,
+  workspaceId: string,
+  clientOrganizationId: string,
+  userId: string,
+): Promise<void> {
+  const [required] = await db
+    .select({ projectId: projects.id })
+    .from(projects)
+    .where(
+      and(
+        eq(projects.workspaceId, workspaceId),
+        eq(projects.clientOrganizationId, clientOrganizationId),
+        eq(projects.clientApproverUserId, userId),
+      ),
+    )
+    .limit(1);
+
+  if (required) throw new RequiredProjectAuthorityError();
+}
 
 export async function createClientOrganization(
   options: Readonly<{
@@ -80,6 +136,12 @@ export async function changeWorkspaceMembershipRole(
       options.workspaceId,
       canManageAgencyMembers,
     );
+    await assertWorkspaceAuthorityCanChange(
+      db,
+      options.workspaceId,
+      options.targetUserId,
+      options.role,
+    );
 
     const updated = await db
       .update(workspaceMembers)
@@ -121,6 +183,12 @@ export async function revokeWorkspaceMembership(
       options.workspaceId,
       canManageAgencyMembers,
     );
+    await assertWorkspaceAuthorityCanChange(
+      db,
+      options.workspaceId,
+      options.targetUserId,
+      null,
+    );
 
     const updated = await db
       .update(workspaceMembers)
@@ -154,12 +222,11 @@ export async function revokeClientMembership(
   const clock = options.clock ?? systemClock;
 
   return withTransaction(options.database, async ({ db }) => {
-    await authorizeWorkspaceCapability(
-      db,
-      options.actor,
-      options.workspaceId,
-      canManageClientMembers,
-    );
+    await authorizeClientOrganizationCapability(db, options.actor, {
+      workspaceId: options.workspaceId,
+      clientOrganizationId: options.clientOrganizationId,
+      capability: "MANAGE_CLIENT_MEMBERS",
+    });
 
     const [organization] = await db
       .select({ id: clientOrganizations.id })
@@ -178,6 +245,13 @@ export async function revokeClientMembership(
         "Client Organization is not available in this Workspace.",
       );
     }
+
+    await assertClientAuthorityCanBeRevoked(
+      db,
+      options.workspaceId,
+      options.clientOrganizationId,
+      options.targetUserId,
+    );
 
     const updated = await db
       .update(clientMembers)

@@ -9,6 +9,8 @@ import {
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { useTransientManagementStatus } from "./use-transient-management-status";
+
 import {
   createInvitationAction,
   updateInvitationAction,
@@ -18,6 +20,16 @@ import type {
   ManageableInvitationListItem,
   WorkspaceMemberListItem,
 } from "../../memberships/queries";
+
+function managementStatusMessage(
+  status: string | undefined,
+  fallback: string,
+): string {
+  if (status === "required-project-authority") {
+    return "Reassign required Project authority before changing this membership.";
+  }
+  return status ?? fallback;
+}
 
 function roleLabel(role: string): string {
   return role
@@ -39,15 +51,23 @@ export function WorkspaceMemberManagement({
   invitations: readonly ManageableInvitationListItem[];
 }>) {
   const router = useRouter();
-  const [status, setStatus] = useState("");
+  const [inviteStatus, setInviteStatus] = useState("");
+  const memberStatus = useTransientManagementStatus();
+  const [invitationStatus, setInvitationStatus] = useState("");
   const [pending, setPending] = useState(false);
+
+  function clearStatuses() {
+    setInviteStatus("");
+    memberStatus.clear();
+    setInvitationStatus("");
+  }
 
   async function invite(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
     setPending(true);
-    setStatus("");
+    clearStatuses();
 
     try {
       const result = await createInvitationAction({
@@ -57,14 +77,16 @@ export function WorkspaceMemberManagement({
         role: String(form.get("role") ?? "AGENCY_MEMBER"),
       });
       if (!result.ok) {
-        setStatus(result.status ?? "Invite failed");
+        setInviteStatus(
+          managementStatusMessage(result.status, "Invite failed"),
+        );
         return;
       }
       formElement.reset();
-      setStatus("Invitation sent");
+      setInviteStatus("Invitation sent");
       router.refresh();
     } catch {
-      setStatus("Service error");
+      setInviteStatus("Service error");
     } finally {
       setPending(false);
     }
@@ -75,19 +97,19 @@ export function WorkspaceMemberManagement({
     action: "resend" | "revoke",
   ) {
     setPending(true);
-    setStatus("");
+    clearStatuses();
     try {
       const result = await updateInvitationAction({ invitationId, action });
-      setStatus(
+      setInvitationStatus(
         result.ok
           ? action === "resend"
             ? "Invitation resent"
             : "Invitation revoked"
-          : (result.status ?? "Update failed"),
+          : managementStatusMessage(result.status, "Update failed"),
       );
       if (result.ok) router.refresh();
     } catch {
-      setStatus("Service error");
+      setInvitationStatus("Service error");
     } finally {
       setPending(false);
     }
@@ -98,9 +120,10 @@ export function WorkspaceMemberManagement({
     userId: string,
   ) {
     event.preventDefault();
-    const form = new FormData(event.currentTarget);
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
     setPending(true);
-    setStatus("");
+    clearStatuses();
 
     try {
       const result = await updateWorkspaceMemberAction({
@@ -109,14 +132,24 @@ export function WorkspaceMemberManagement({
         action: "change-role",
         role: String(form.get("role") ?? ""),
       });
-      setStatus(
+      memberStatus.show(
         result.ok
           ? "Workspace role updated"
-          : (result.status ?? "Role update failed"),
+          : managementStatusMessage(result.status, "Role update failed"),
+        result.ok
+          ? "success"
+          : result.status === "required-project-authority"
+            ? "warning"
+            : "danger",
       );
-      if (result.ok) router.refresh();
+      if (result.ok) {
+        router.refresh();
+      } else {
+        formElement.reset();
+      }
     } catch {
-      setStatus("Service error");
+      formElement.reset();
+      memberStatus.show("Service error", "danger");
     } finally {
       setPending(false);
     }
@@ -124,19 +157,26 @@ export function WorkspaceMemberManagement({
 
   async function removeMember(userId: string) {
     setPending(true);
-    setStatus("");
+    clearStatuses();
     try {
       const result = await updateWorkspaceMemberAction({
         workspaceId,
         targetUserId: userId,
         action: "revoke",
       });
-      setStatus(
-        result.ok ? "Access removed" : (result.status ?? "Removal failed"),
+      memberStatus.show(
+        result.ok
+          ? "Access removed"
+          : managementStatusMessage(result.status, "Removal failed"),
+        result.ok
+          ? "success"
+          : result.status === "required-project-authority"
+            ? "warning"
+            : "danger",
       );
       if (result.ok) router.refresh();
     } catch {
-      setStatus("Service error");
+      memberStatus.show("Service error", "danger");
     } finally {
       setPending(false);
     }
@@ -193,7 +233,7 @@ export function WorkspaceMemberManagement({
           </button>
         </form>
         <p className="ops-management-status" aria-live="polite">
-          {status}
+          {inviteStatus}
         </p>
       </section>
 
@@ -211,6 +251,16 @@ export function WorkspaceMemberManagement({
           </div>
           <span className="ops-section-meta">{members.length} active</span>
         </div>
+
+        {memberStatus.status ? (
+          <p
+            className="ops-management-status ops-management-section-status"
+            data-tone={memberStatus.status.tone}
+            aria-live="polite"
+          >
+            {memberStatus.status.message}
+          </p>
+        ) : null}
 
         <div className="ops-people-table" aria-label="Agency members">
           <div className="ops-people-row ops-people-header">
@@ -299,6 +349,15 @@ export function WorkspaceMemberManagement({
             {invitations.length} in queue
           </span>
         </div>
+
+        {invitationStatus ? (
+          <p
+            className="ops-management-status ops-management-section-status"
+            aria-live="polite"
+          >
+            {invitationStatus}
+          </p>
+        ) : null}
 
         {invitations.length === 0 ? (
           <div className="ops-inline-empty">

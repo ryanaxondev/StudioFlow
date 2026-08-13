@@ -25,6 +25,7 @@ import {
   createClientOrganization,
   revokeClientMembership,
   revokeWorkspaceMembership,
+  RequiredProjectAuthorityError,
 } from "../memberships/service";
 import { getApplicationDatabase } from "../../server/database";
 import { logger } from "../../server/observability/logger";
@@ -281,6 +282,9 @@ export async function updateWorkspaceMemberAction(
     if (error instanceof AuthorizationError) {
       return authorizationFailure(error, "agency.workspace-member.update");
     }
+    if (error instanceof RequiredProjectAuthorityError) {
+      return { ok: false, status: "required-project-authority" };
+    }
     logger.error("workspace_membership.update_failed");
     return { ok: false, status: "service-error" };
   }
@@ -308,6 +312,9 @@ export async function revokeClientMemberAction(
   } catch (error) {
     if (error instanceof AuthorizationError) {
       return authorizationFailure(error, "agency.client-member.revoke");
+    }
+    if (error instanceof RequiredProjectAuthorityError) {
+      return { ok: false, status: "required-project-authority" };
     }
     logger.error("client_membership.revoke_failed");
     return { ok: false, status: "service-error" };

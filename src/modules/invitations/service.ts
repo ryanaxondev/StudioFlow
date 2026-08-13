@@ -21,12 +21,10 @@ import type {
 import { withTransaction } from "../../db/transactions";
 import type { Clock } from "../../lib/clock";
 import { systemClock } from "../../lib/clock";
-import {
-  canManageAgencyMembers,
-  canManageClientMembers,
-} from "../authorization/policies";
+import { canManageAgencyMembers } from "../authorization/policies";
 import { authorizeWorkspaceCapability } from "../authorization/server/authorization";
 import type { ActorContext } from "../authorization/types";
+import { authorizeClientOrganizationCapability } from "../projects/client-organization-authorization";
 import {
   CLIENT_INVITATION_DELIVERY_EVENT,
   protectInvitationDelivery,
@@ -331,13 +329,6 @@ export async function inviteClientMember(
   const now = clock.now();
 
   return withTransaction(options.database, async (transaction) => {
-    await authorizeWorkspaceCapability(
-      transaction.db,
-      options.actor,
-      options.workspaceId,
-      canManageClientMembers,
-    );
-
     const [organization] = await transaction.db
       .select({ id: clientOrganizations.id })
       .from(clientOrganizations)
@@ -353,6 +344,12 @@ export async function inviteClientMember(
     if (!organization) {
       throw new InvitationError("TARGET_UNAVAILABLE");
     }
+
+    await authorizeClientOrganizationCapability(transaction.db, options.actor, {
+      workspaceId: options.workspaceId,
+      clientOrganizationId: options.clientOrganizationId,
+      capability: "MANAGE_CLIENT_MEMBERS",
+    });
 
     await lockInvitationTarget(transaction, {
       workspaceId: options.workspaceId,
@@ -428,14 +425,25 @@ async function authorizeInvitationManagement(
   invitation: LockedInvitationRow,
   actor: ActorContext,
 ): Promise<void> {
-  await authorizeWorkspaceCapability(
-    db,
-    actor,
-    invitation.workspace_id,
-    invitation.membership_type === "WORKSPACE_MEMBER"
-      ? canManageAgencyMembers
-      : canManageClientMembers,
-  );
+  if (invitation.membership_type === "WORKSPACE_MEMBER") {
+    await authorizeWorkspaceCapability(
+      db,
+      actor,
+      invitation.workspace_id,
+      canManageAgencyMembers,
+    );
+    return;
+  }
+
+  if (!invitation.client_organization_id) {
+    throw new InvitationError("TARGET_UNAVAILABLE");
+  }
+
+  await authorizeClientOrganizationCapability(db, actor, {
+    workspaceId: invitation.workspace_id,
+    clientOrganizationId: invitation.client_organization_id,
+    capability: "MANAGE_CLIENT_MEMBERS",
+  });
 }
 
 async function assertInvitationInviteeIsNotActiveMember(

@@ -1,4 +1,5 @@
 import { headers } from "next/headers";
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { canViewAgencyDelivery } from "../../modules/authorization/policies";
@@ -8,6 +9,7 @@ import {
   resolveAuthorizedAgencyWorkspaceSelection,
 } from "../../modules/authorization/server/authorization";
 import { SessionRefresh } from "../../modules/auth/components/session-refresh";
+import { listAgencyDeliveryProjects } from "../../modules/projects/queries";
 import { getApplicationDatabase } from "../../server/database";
 
 type PageProps = Readonly<{
@@ -18,12 +20,28 @@ function firstValue(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
 }
 
-const pulseMetrics = [
-  { label: "Needs attention", tone: "attention" },
-  { label: "Waiting on client", tone: "waiting" },
-  { label: "Active delivery", tone: "active" },
-  { label: "At risk", tone: "risk" },
-] as const;
+function lifecycleLabel(lifecycle: string): string {
+  return lifecycle
+    .toLowerCase()
+    .replaceAll("_", " ")
+    .replace(/^\w/, (character) => character.toUpperCase());
+}
+
+function formatDate(date: Date): string {
+  return new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "numeric",
+  }).format(date);
+}
+
+function formatTargetDate(value: string): string {
+  return new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(`${value}T12:00:00.000Z`));
+}
 
 export default async function AgencyLandingPage({ searchParams }: PageProps) {
   const parameters = await searchParams;
@@ -51,6 +69,49 @@ export default async function AgencyLandingPage({ searchParams }: PageProps) {
   }
 
   const { selected } = result.selection;
+  const deliveryProjects = await listAgencyDeliveryProjects(
+    database,
+    actor,
+    selected.scope,
+  );
+  const lifecycleCounts = {
+    DRAFT: deliveryProjects.filter((project) => project.lifecycle === "DRAFT")
+      .length,
+    ONBOARDING: deliveryProjects.filter(
+      (project) => project.lifecycle === "ONBOARDING",
+    ).length,
+    ACTIVE: deliveryProjects.filter((project) => project.lifecycle === "ACTIVE")
+      .length,
+    HANDOFF: deliveryProjects.filter(
+      (project) => project.lifecycle === "HANDOFF",
+    ).length,
+  };
+  const draftProjects = deliveryProjects.filter(
+    (project) => project.lifecycle === "DRAFT" && project.canManageProject,
+  );
+  const datedProjects = deliveryProjects
+    .filter((project) => project.targetCompletionDate)
+    .sort((left, right) =>
+      String(left.targetCompletionDate).localeCompare(
+        String(right.targetCompletionDate),
+      ),
+    );
+
+  const pulseMetrics = [
+    { label: "Draft setup", tone: "attention", value: lifecycleCounts.DRAFT },
+    {
+      label: "Onboarding",
+      tone: "waiting",
+      value: lifecycleCounts.ONBOARDING,
+    },
+    {
+      label: "Active delivery",
+      tone: "active",
+      value: lifecycleCounts.ACTIVE,
+    },
+    { label: "Handoff", tone: "neutral", value: lifecycleCounts.HANDOFF },
+  ] as const;
+
   return (
     <main className="ops-workspace ops-delivery-page">
       <SessionRefresh
@@ -62,10 +123,16 @@ export default async function AgencyLandingPage({ searchParams }: PageProps) {
           <p className="ops-page-kicker">Operational workspace</p>
           <h1>Delivery</h1>
           <p>
-            Health, responsibility, and client handoffs across{" "}
+            Project lifecycle, responsibility, and delivery context across{" "}
             {selected.workspaceName}.
           </p>
         </div>
+        <Link
+          className="ops-primary-action"
+          href={`/agency/projects/new?workspaceId=${selected.workspaceId}`}
+        >
+          New project
+        </Link>
       </header>
 
       <section
@@ -75,9 +142,12 @@ export default async function AgencyLandingPage({ searchParams }: PageProps) {
         <div className="ops-section-heading">
           <div>
             <span className="ops-section-label">Delivery pulse</span>
-            <h2 id="delivery-pulse-heading">Operational health</h2>
+            <h2 id="delivery-pulse-heading">Lifecycle summary</h2>
           </div>
-          <span className="ops-section-meta">Across current client work</span>
+          <span className="ops-section-meta">
+            {deliveryProjects.length} visible{" "}
+            {deliveryProjects.length === 1 ? "project" : "projects"}
+          </span>
         </div>
         <div className="delivery-metrics">
           {pulseMetrics.map((metric) => (
@@ -87,13 +157,16 @@ export default async function AgencyLandingPage({ searchParams }: PageProps) {
               key={metric.label}
             >
               <span>{metric.label}</span>
-              <strong className="tabular-nums">—</strong>
+              <strong className="tabular-nums">{metric.value}</strong>
             </div>
           ))}
         </div>
-        <p className="delivery-pulse-empty-note">
-          Delivery health activates when project work begins.
-        </p>
+        {deliveryProjects.length === 0 ? (
+          <p className="delivery-pulse-empty-note">
+            Delivery lifecycle activates when the first Project Draft is
+            created.
+          </p>
+        ) : null}
       </section>
 
       <section className="delivery-brief-grid" aria-label="Delivery brief">
@@ -101,46 +174,80 @@ export default async function AgencyLandingPage({ searchParams }: PageProps) {
           <div className="ops-section-heading ops-section-heading-compact">
             <div>
               <span className="ops-section-label">Priority</span>
-              <h2>Needs attention</h2>
+              <h2>Draft setup</h2>
             </div>
-            <span className="ops-count-badge">0</span>
+            <span className="ops-count-badge">{draftProjects.length}</span>
           </div>
-          <div className="delivery-inline-empty">
-            <span
-              className="delivery-empty-glyph"
-              data-tone="success"
-              aria-hidden="true"
-            />
-            <div>
-              <strong>Nothing needs intervention</strong>
-              <span>
-                Risks, blocked approvals, and stale handoffs will surface here.
-              </span>
+          {draftProjects[0] ? (
+            <Link
+              className="delivery-inline-empty delivery-inline-link"
+              href={`/agency/projects/${draftProjects[0].projectId}/setup?workspaceId=${selected.workspaceId}`}
+            >
+              <span
+                className="delivery-empty-glyph"
+                data-tone="neutral"
+                aria-hidden="true"
+              />
+              <div>
+                <strong>{draftProjects[0].title}</strong>
+                <span>
+                  Resume setup for {draftProjects[0].clientOrganizationName}.
+                </span>
+              </div>
+            </Link>
+          ) : (
+            <div className="delivery-inline-empty">
+              <span
+                className="delivery-empty-glyph"
+                data-tone="success"
+                aria-hidden="true"
+              />
+              <div>
+                <strong>No Draft setup waiting</strong>
+                <span>New Project Drafts will surface here.</span>
+              </div>
             </div>
-          </div>
+          )}
         </article>
 
         <article className="delivery-brief-panel">
           <div className="ops-section-heading ops-section-heading-compact">
             <div>
               <span className="ops-section-label">Timeline</span>
-              <h2>Upcoming</h2>
+              <h2>Nearest target</h2>
             </div>
-            <span className="ops-count-badge">0</span>
+            <span className="ops-count-badge">{datedProjects.length}</span>
           </div>
-          <div className="delivery-inline-empty">
-            <span
-              className="delivery-empty-glyph"
-              data-tone="neutral"
-              aria-hidden="true"
-            />
-            <div>
-              <strong>No upcoming handoffs</strong>
-              <span>
-                Client reviews and delivery checkpoints will collect here.
-              </span>
+          {datedProjects[0] ? (
+            <div className="delivery-inline-empty">
+              <span
+                className="delivery-empty-glyph"
+                data-tone="neutral"
+                aria-hidden="true"
+              />
+              <div>
+                <strong>{datedProjects[0].title}</strong>
+                <span>
+                  Target completion{" "}
+                  {formatTargetDate(datedProjects[0].targetCompletionDate!)}.
+                </span>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="delivery-inline-empty">
+              <span
+                className="delivery-empty-glyph"
+                data-tone="neutral"
+                aria-hidden="true"
+              />
+              <div>
+                <strong>No target dates yet</strong>
+                <span>
+                  Project targets will collect here as setup continues.
+                </span>
+              </div>
+            </div>
+          )}
         </article>
       </section>
 
@@ -151,13 +258,13 @@ export default async function AgencyLandingPage({ searchParams }: PageProps) {
         <div className="ops-section-heading">
           <div>
             <span className="ops-section-label">Portfolio</span>
-            <h2 id="active-delivery-heading">Active delivery</h2>
+            <h2 id="active-delivery-heading">Delivery portfolio</h2>
           </div>
         </div>
         <div
           className="delivery-table"
           role="table"
-          aria-label="Active delivery projects"
+          aria-label="Delivery projects"
         >
           <div className="delivery-table-row delivery-table-header" role="row">
             <span role="columnheader">Project</span>
@@ -165,22 +272,66 @@ export default async function AgencyLandingPage({ searchParams }: PageProps) {
             <span role="columnheader">Stage</span>
             <span role="columnheader">Owner</span>
             <span role="columnheader">Updated</span>
-            <span role="columnheader">Health</span>
+            <span role="columnheader">Status</span>
           </div>
-          <div className="delivery-table-empty" role="row">
-            <div role="cell">
-              <span className="delivery-table-empty-mark" aria-hidden="true">
-                +
-              </span>
-              <div>
-                <strong>No active delivery yet</strong>
-                <span>
-                  Project activity will appear here when delivery work is
-                  active.
+          {deliveryProjects.length === 0 ? (
+            <div className="delivery-table-empty" role="row">
+              <div role="cell">
+                <span className="delivery-table-empty-mark" aria-hidden="true">
+                  +
                 </span>
+                <div>
+                  <strong>No delivery Projects yet</strong>
+                  <span>Create a Draft to establish delivery context.</span>
+                </div>
               </div>
             </div>
-          </div>
+          ) : (
+            deliveryProjects.map((project) => {
+              const row = (
+                <>
+                  <span role="cell" className="ops-table-primary">
+                    <strong>{project.title}</strong>
+                    <small>Project</small>
+                  </span>
+                  <span role="cell">{project.clientOrganizationName}</span>
+                  <span role="cell">{lifecycleLabel(project.lifecycle)}</span>
+                  <span role="cell">{project.deliveryManagerName}</span>
+                  <span role="cell">{formatDate(project.updatedAt)}</span>
+                  <span role="cell">
+                    <span
+                      className="ops-status-chip"
+                      data-tone={
+                        project.lifecycle === "DRAFT" ? "neutral" : "success"
+                      }
+                    >
+                      {project.lifecycle === "DRAFT" ? "Setup" : "Tracked"}
+                    </span>
+                  </span>
+                </>
+              );
+
+              return project.lifecycle === "DRAFT" &&
+                project.canManageProject ? (
+                <Link
+                  className="delivery-table-row delivery-table-project-row"
+                  role="row"
+                  key={project.projectId}
+                  href={`/agency/projects/${project.projectId}/setup?workspaceId=${selected.workspaceId}`}
+                >
+                  {row}
+                </Link>
+              ) : (
+                <div
+                  className="delivery-table-row delivery-table-project-row delivery-table-project-row-static"
+                  role="row"
+                  key={project.projectId}
+                >
+                  {row}
+                </div>
+              );
+            })
+          )}
         </div>
       </section>
     </main>

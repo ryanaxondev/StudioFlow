@@ -1,4 +1,4 @@
-import type { WorkspaceRole } from "../../db/schema";
+import type { ProjectLifecycle, WorkspaceRole } from "../../db/schema";
 
 export type ActorContext = Readonly<{
   userId: string;
@@ -24,6 +24,9 @@ export type AuthorizationCapability =
   | "MANAGE_CLIENT_MEMBERS"
   | "CREATE_PROJECT"
   | "VIEW_PROJECT"
+  | "EDIT_PROJECT_SETTINGS"
+  | "MANAGE_PROJECT_MEMBERS"
+  | "DELETE_DRAFT_PROJECT"
   | "ENTER_CLIENT_PORTAL";
 
 export type AuthorizationDenialReason =
@@ -31,7 +34,8 @@ export type AuthorizationDenialReason =
   | "ROLE_FORBIDDEN"
   | "NO_CLIENT_MEMBERSHIP"
   | "PROJECT_ASSIGNMENT_REQUIRED"
-  | "PROJECT_CONTEXT_MISMATCH";
+  | "PROJECT_CONTEXT_MISMATCH"
+  | "PROJECT_DRAFT_AGENCY_ONLY";
 
 export type CapabilityResult<
   Capability extends AuthorizationCapability = AuthorizationCapability,
@@ -60,7 +64,19 @@ export type ProjectActorAssignment =
 
 export type ProjectPolicySubject = Readonly<{
   workspaceId: string;
+  lifecycle: ProjectLifecycle;
   actorAssignment: ProjectActorAssignment;
+}>;
+
+export type AuthorizedProjectScope<
+  Capability extends AuthorizationCapability = AuthorizationCapability,
+> = Readonly<{
+  workspaceId: string;
+  projectId: string;
+  clientOrganizationId: string;
+  lifecycle: ProjectLifecycle;
+  actorAssignment: ProjectActorAssignment;
+  capability: Capability;
 }>;
 
 export type AuthorizedWorkspaceScope<

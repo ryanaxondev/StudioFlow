@@ -1700,6 +1700,36 @@
   margin-top: -0.85rem;
 }
 
+.ops-management-section-status {
+  min-height: 0;
+  margin: 0.5rem 0 0.65rem;
+  border: 1px solid var(--ops-border-strong);
+  border-radius: 0.4rem;
+  padding: 0.55rem 0.7rem;
+  background: var(--ops-raised);
+  color: var(--ops-text-secondary);
+  font-size: 0.6875rem;
+  line-height: 1.05rem;
+}
+
+.ops-management-section-status[data-tone="warning"] {
+  border-color: rgb(229 169 61 / 28%);
+  background: rgb(229 169 61 / 8%);
+  color: var(--ops-amber);
+}
+
+.ops-management-section-status[data-tone="success"] {
+  border-color: rgb(63 185 142 / 24%);
+  background: rgb(63 185 142 / 7%);
+  color: var(--ops-emerald);
+}
+
+.ops-management-section-status[data-tone="danger"] {
+  border-color: rgb(228 110 104 / 26%);
+  background: rgb(228 110 104 / 7%);
+  color: var(--ops-risk);
+}
+
 .ops-management-section {
   min-width: 0;
 }
@@ -3391,5 +3421,444 @@
     animation: none;
     border-color: var(--ops-border-strong);
     border-top-color: var(--client-accent-bright, #a69cff);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   M09 — Project and Activity core population
+   -------------------------------------------------------------------------- */
+
+.delivery-inline-link,
+.delivery-table-project-row {
+  color: inherit;
+  text-decoration: none;
+}
+
+.delivery-inline-link {
+  transition: background-color 120ms ease;
+}
+
+.delivery-inline-link:hover,
+.delivery-inline-link:focus-visible {
+  background: var(--ops-interactive);
+}
+
+.delivery-inline-link:focus-visible,
+.delivery-table-project-row:focus-visible {
+  outline: 2px solid var(--ops-violet);
+  outline-offset: -2px;
+}
+
+.delivery-table-project-row {
+  min-height: 3.5rem;
+  align-items: center;
+  border-bottom: 1px solid var(--ops-border);
+  color: var(--ops-text-secondary);
+  font-size: 0.71875rem;
+  transition: background-color 120ms ease;
+}
+
+.delivery-table-project-row:last-child {
+  border-bottom: 0;
+}
+
+.delivery-table-project-row:hover {
+  background: var(--ops-interactive);
+}
+
+.delivery-table-project-row > span {
+  min-width: 0;
+  padding: 0 0.75rem;
+}
+
+.ops-project-settings-page {
+  width: 100%;
+}
+
+.ops-project-settings-header {
+  align-items: center;
+}
+
+.ops-project-settings-nav {
+  margin-top: 1.25rem;
+  display: flex;
+  gap: 0.25rem;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--ops-border);
+}
+
+.ops-project-settings-nav a {
+  min-height: 2.5rem;
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  padding: 0 0.7rem;
+  border-bottom: 1px solid transparent;
+  color: var(--ops-text-tertiary);
+  font-size: 0.6875rem;
+  font-weight: 560;
+  text-decoration: none;
+}
+
+.ops-project-settings-nav a:hover {
+  color: var(--ops-text-secondary);
+}
+
+.ops-project-settings-nav a[aria-current="page"] {
+  border-bottom-color: var(--ops-violet);
+  color: var(--ops-text);
+}
+
+.ops-project-settings-card,
+.ops-project-readiness {
+  margin-top: 1.5rem;
+  border: 1px solid var(--ops-border);
+  border-radius: 0.55rem;
+  background: var(--ops-surface);
+  padding: 1rem;
+}
+
+.ops-project-form,
+.ops-project-settings-stack {
+  margin-top: 1rem;
+  display: grid;
+  gap: 1rem;
+}
+
+.ops-project-form-grid,
+.ops-project-authority-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.875rem;
+}
+
+.ops-project-field {
+  display: grid;
+  gap: 0.4rem;
+  color: var(--ops-text-tertiary);
+  font-size: 0.625rem;
+  font-weight: 560;
+}
+
+.ops-project-field-wide {
+  grid-column: 1 / -1;
+}
+
+.ops-project-field input,
+.ops-project-field textarea,
+.ops-project-field select,
+.ops-project-inline-form select {
+  width: 100%;
+  border: 1px solid var(--ops-border-strong);
+  border-radius: 0.4rem;
+  background: var(--ops-raised);
+  color: var(--ops-text);
+  font: inherit;
+  font-size: 0.75rem;
+  outline: none;
+}
+
+.ops-project-field input,
+.ops-project-field select,
+.ops-project-inline-form select {
+  min-height: 2.35rem;
+  padding: 0 0.7rem;
+}
+
+.ops-project-field textarea {
+  resize: vertical;
+  min-height: 7.5rem;
+  padding: 0.65rem 0.7rem;
+  line-height: 1.35rem;
+}
+
+.ops-project-field input:focus,
+.ops-project-field textarea:focus,
+.ops-project-field select:focus,
+.ops-project-inline-form select:focus {
+  border-color: rgb(139 126 255 / 62%);
+  box-shadow: 0 0 0 2px rgb(108 92 231 / 12%);
+}
+
+.ops-project-field input:disabled,
+.ops-project-field textarea:disabled,
+.ops-project-field select:disabled,
+.ops-project-inline-form select:disabled {
+  opacity: 0.58;
+  cursor: not-allowed;
+}
+
+.ops-project-field small {
+  color: var(--ops-text-tertiary);
+  font-size: 0.6rem;
+  font-weight: 450;
+}
+
+.ops-project-form-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.ops-project-version {
+  color: var(--ops-text-tertiary);
+  font-size: 0.625rem;
+}
+
+.ops-project-callout {
+  display: grid;
+  gap: 0.2rem;
+  border: 1px solid var(--ops-border);
+  border-radius: 0.4rem;
+  padding: 0.75rem;
+  background: var(--ops-raised);
+}
+
+.ops-project-callout strong {
+  color: var(--ops-text-secondary);
+  font-size: 0.6875rem;
+}
+
+.ops-project-callout span {
+  color: var(--ops-text-tertiary);
+  font-size: 0.625rem;
+}
+
+.ops-project-callout[data-tone="warning"] {
+  border-color: rgb(223 170 92 / 22%);
+}
+
+.ops-project-checklist {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border: 1px solid var(--ops-border);
+  border-radius: 0.45rem;
+  overflow: hidden;
+}
+
+.ops-project-checklist > div {
+  min-height: 4.25rem;
+  display: grid;
+  align-content: center;
+  gap: 0.25rem;
+  padding: 0.75rem;
+  border-right: 1px solid var(--ops-border);
+}
+
+.ops-project-checklist > div:last-child {
+  border-right: 0;
+}
+
+.ops-project-checklist > div > span {
+  color: var(--ops-text-tertiary);
+  font-size: 0.75rem;
+}
+
+.ops-project-checklist > div[data-complete="true"] > span {
+  color: var(--ops-emerald);
+}
+
+.ops-project-checklist strong {
+  color: var(--ops-text-secondary);
+  font-size: 0.6875rem;
+  font-weight: 560;
+}
+
+.ops-project-people-section {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.ops-project-member-list {
+  overflow: hidden;
+  border: 1px solid var(--ops-border);
+  border-radius: 0.45rem;
+}
+
+.ops-project-member-list article {
+  min-height: 3.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.65rem 0.75rem;
+  border-bottom: 1px solid var(--ops-border);
+}
+
+.ops-project-member-list article:last-child {
+  border-bottom: 0;
+}
+
+.ops-project-member-list article > div {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.ops-project-member-list strong {
+  color: var(--ops-text);
+  font-size: 0.71875rem;
+  font-weight: 560;
+}
+
+.ops-project-member-list article > div > span {
+  color: var(--ops-text-tertiary);
+  font-size: 0.625rem;
+}
+
+.ops-project-inline-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.5rem;
+}
+
+.ops-project-lifecycle-card,
+.ops-project-danger-zone {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+  border: 1px solid var(--ops-border);
+  border-radius: 0.45rem;
+  padding: 1rem;
+  background: var(--ops-raised);
+}
+
+.ops-project-lifecycle-card > div,
+.ops-project-danger-zone > div {
+  display: grid;
+  gap: 0.35rem;
+  max-width: 42rem;
+}
+
+.ops-project-lifecycle-card h3,
+.ops-project-danger-zone h3 {
+  margin: 0;
+  color: var(--ops-text);
+  font-size: 0.875rem;
+  font-weight: 580;
+}
+
+.ops-project-lifecycle-card p:last-child,
+.ops-project-danger-zone p:last-child {
+  margin: 0;
+  color: var(--ops-text-tertiary);
+  font-size: 0.6875rem;
+  line-height: 1.1rem;
+}
+
+.ops-project-danger-zone {
+  border-color: rgb(228 110 104 / 18%);
+}
+
+@media (max-width: 63.999rem) {
+  .delivery-table-project-row {
+    min-width: 47rem;
+  }
+
+  .ops-project-checklist {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ops-project-checklist > div:nth-child(2) {
+    border-right: 0;
+  }
+
+  .ops-project-checklist > div:nth-child(-n + 2) {
+    border-bottom: 1px solid var(--ops-border);
+  }
+}
+
+@media (max-width: 47.999rem) {
+  .ops-workspace.ops-project-settings-page {
+    padding-inline: 0.9rem;
+  }
+
+  .ops-project-settings-header {
+    align-items: flex-start;
+  }
+
+  .ops-project-form-grid,
+  .ops-project-authority-grid,
+  .ops-project-checklist {
+    grid-template-columns: 1fr;
+  }
+
+  .ops-project-checklist > div {
+    border-right: 0;
+    border-bottom: 1px solid var(--ops-border);
+  }
+
+  .ops-project-checklist > div:last-child {
+    border-bottom: 0;
+  }
+
+  .ops-project-inline-form {
+    grid-template-columns: 1fr;
+  }
+
+  .ops-project-lifecycle-card,
+  .ops-project-danger-zone {
+    flex-direction: column;
+  }
+}
+
+.delivery-table-project-row-static:hover {
+  background: transparent;
+}
+
+.ops-project-field-confirmation,
+.ops-project-danger-confirmation > div {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ops-project-field-confirmation {
+  margin-top: 0.15rem;
+}
+
+.ops-project-cancel-action {
+  min-height: 1.9rem;
+  border: 0;
+  padding: 0 0.35rem;
+  background: transparent;
+  color: var(--ops-text-tertiary);
+  font: inherit;
+  font-size: 0.625rem;
+  cursor: pointer;
+}
+
+.ops-project-cancel-action:hover:not(:disabled) {
+  color: var(--ops-text);
+}
+
+.ops-project-cancel-action:focus-visible {
+  color: var(--ops-text);
+  outline: 2px solid var(--ops-violet);
+  outline-offset: 2px;
+}
+
+.ops-project-cancel-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.ops-project-danger-confirmation {
+  display: grid;
+  justify-items: end;
+  gap: 0.55rem;
+  color: #e4a09b;
+  font-size: 0.625rem;
+}
+
+@media (max-width: 47.999rem) {
+  .ops-project-field-confirmation,
+  .ops-project-danger-confirmation > div {
+    flex-wrap: wrap;
+  }
+
+  .ops-project-danger-confirmation {
+    width: 100%;
+    justify-items: start;
   }
 }

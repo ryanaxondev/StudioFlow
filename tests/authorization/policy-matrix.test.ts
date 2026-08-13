@@ -3,8 +3,11 @@ import { describe, expect, it } from "vitest";
 import {
   canCreateClientOrganization,
   canCreateProject,
+  canDeleteDraftProject,
+  canEditProjectSettings,
   canEnterClientPortal,
   canManageAgencyMembers,
+  canManageProjectMembers,
   canManageClientMembers,
   canManageWorkspace,
   canViewAgencyDelivery,
@@ -28,7 +31,7 @@ import {
 
 const { workspaceA, clientA } = authorizationFixture;
 
-describe("M07 authorization policy matrix", () => {
+describe("authorization policy matrix through M09", () => {
   it("enforces Workspace capabilities by authoritative role", () => {
     const matrix = [
       {
@@ -208,57 +211,128 @@ describe("M07 authorization policy matrix", () => {
     ).toBe(false);
   });
 
-  it("keeps Project viewing behind the M07 Project policy interface", () => {
+  it("enforces Project assignment, Draft client exclusion, and Project-manager capabilities", () => {
+    const draft = {
+      workspaceId: workspaceA,
+      lifecycle: "DRAFT" as const,
+      actorAssignment: null,
+    };
+
+    expect(canViewProject(authorizationActors.owner, draft).allowed).toBe(true);
     expect(
-      canViewProject(authorizationActors.owner, {
-        workspaceId: workspaceA,
-        actorAssignment: null,
-      }).allowed,
+      canEditProjectSettings(authorizationActors.owner, draft).allowed,
+    ).toBe(true);
+    expect(
+      canManageProjectMembers(authorizationActors.owner, draft).allowed,
+    ).toBe(true);
+    expect(
+      canDeleteDraftProject(authorizationActors.owner, draft).allowed,
+    ).toBe(true);
+
+    const assignedManager = {
+      workspaceId: workspaceA,
+      lifecycle: "DRAFT" as const,
+      actorAssignment: {
+        kind: "AGENCY" as const,
+        role: "DELIVERY_MANAGER" as const,
+      },
+    };
+    expect(
+      canViewProject(authorizationActors.deliveryManager, assignedManager)
+        .allowed,
+    ).toBe(true);
+    expect(
+      canEditProjectSettings(
+        authorizationActors.deliveryManager,
+        assignedManager,
+      ).allowed,
+    ).toBe(true);
+    expect(
+      canManageProjectMembers(
+        authorizationActors.deliveryManager,
+        assignedManager,
+      ).allowed,
+    ).toBe(true);
+    expect(
+      canDeleteDraftProject(
+        authorizationActors.deliveryManager,
+        assignedManager,
+      ).allowed,
     ).toBe(true);
 
     expect(
       canViewProject(authorizationActors.deliveryManager, {
-        workspaceId: workspaceA,
-        actorAssignment: { kind: "AGENCY", role: "DELIVERY_MANAGER" },
-      }).allowed,
-    ).toBe(true);
-    expect(
-      canViewProject(authorizationActors.deliveryManager, {
-        workspaceId: workspaceA,
+        ...draft,
         actorAssignment: null,
       }).allowed,
     ).toBe(false);
 
+    const assignedAgencyMember = {
+      workspaceId: workspaceA,
+      lifecycle: "DRAFT" as const,
+      actorAssignment: {
+        kind: "AGENCY" as const,
+        role: "AGENCY_MEMBER" as const,
+      },
+    };
     expect(
-      canViewProject(authorizationActors.agencyMember, {
-        workspaceId: workspaceA,
-        actorAssignment: { kind: "AGENCY", role: "AGENCY_MEMBER" },
-      }).allowed,
+      canViewProject(authorizationActors.agencyMember, assignedAgencyMember)
+        .allowed,
     ).toBe(true);
+    expect(
+      canEditProjectSettings(
+        authorizationActors.agencyMember,
+        assignedAgencyMember,
+      ).allowed,
+    ).toBe(false);
+    expect(
+      canManageProjectMembers(
+        authorizationActors.agencyMember,
+        assignedAgencyMember,
+      ).allowed,
+    ).toBe(false);
+    expect(
+      canDeleteDraftProject(
+        authorizationActors.agencyMember,
+        assignedAgencyMember,
+      ).allowed,
+    ).toBe(false);
 
     for (const role of ["CLIENT_APPROVER", "CLIENT_CONTRIBUTOR"] as const) {
+      const clientAssignment = {
+        kind: "CLIENT" as const,
+        clientOrganizationId: clientA,
+        role,
+      };
       expect(
         canViewProject(authorizationActors.clientUser, {
           workspaceId: workspaceA,
-          actorAssignment: {
-            kind: "CLIENT",
-            clientOrganizationId: clientA,
-            role,
-          },
+          lifecycle: "ONBOARDING",
+          actorAssignment: clientAssignment,
         }).allowed,
       ).toBe(true);
+      expect(
+        canViewProject(authorizationActors.clientUser, {
+          workspaceId: workspaceA,
+          lifecycle: "DRAFT",
+          actorAssignment: clientAssignment,
+        }),
+      ).toMatchObject({
+        allowed: false,
+        reason: "PROJECT_DRAFT_AGENCY_ONLY",
+      });
     }
 
     expect(
-      canViewProject(authorizationActors.otherWorkspaceOwner, {
-        workspaceId: workspaceA,
-        actorAssignment: null,
-      }).allowed,
+      canViewProject(authorizationActors.otherWorkspaceOwner, draft).allowed,
     ).toBe(false);
+    expect(canViewProject(authorizationActors.removedUser, draft).allowed).toBe(
+      false,
+    );
     expect(
-      canViewProject(authorizationActors.removedUser, {
-        workspaceId: workspaceA,
-        actorAssignment: null,
+      canDeleteDraftProject(authorizationActors.owner, {
+        ...draft,
+        lifecycle: "ACTIVE",
       }).allowed,
     ).toBe(false);
   });

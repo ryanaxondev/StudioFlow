@@ -8,12 +8,24 @@ import {
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { useTransientManagementStatus } from "./use-transient-management-status";
+
 import {
   createInvitationAction,
   revokeClientMemberAction,
   updateInvitationAction,
 } from "../actions";
 import type { ClientOrganizationDetail } from "../../memberships/queries";
+
+function managementStatusMessage(
+  status: string | undefined,
+  fallback: string,
+): string {
+  if (status === "required-project-authority") {
+    return "Reassign required Project authority before changing this membership.";
+  }
+  return status ?? fallback;
+}
 
 export function ClientMemberManagement({
   workspaceId,
@@ -26,14 +38,22 @@ export function ClientMemberManagement({
 }>) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
-  const [status, setStatus] = useState("");
+  const [inviteStatus, setInviteStatus] = useState("");
+  const memberStatus = useTransientManagementStatus();
+  const [invitationStatus, setInvitationStatus] = useState("");
+
+  function clearStatuses() {
+    setInviteStatus("");
+    memberStatus.clear();
+    setInvitationStatus("");
+  }
 
   async function invite(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
     setPending(true);
-    setStatus("");
+    clearStatuses();
     try {
       const result = await createInvitationAction({
         membershipType: "CLIENT_MEMBER",
@@ -42,14 +62,16 @@ export function ClientMemberManagement({
         email: String(form.get("email") ?? ""),
       });
       if (!result.ok) {
-        setStatus(result.status ?? "Invite failed");
+        setInviteStatus(
+          managementStatusMessage(result.status, "Invite failed"),
+        );
         return;
       }
       formElement.reset();
-      setStatus("Invitation sent");
+      setInviteStatus("Invitation sent");
       router.refresh();
     } catch {
-      setStatus("Service error");
+      setInviteStatus("Service error");
     } finally {
       setPending(false);
     }
@@ -60,19 +82,19 @@ export function ClientMemberManagement({
     action: "resend" | "revoke",
   ) {
     setPending(true);
-    setStatus("");
+    clearStatuses();
     try {
       const result = await updateInvitationAction({ invitationId, action });
-      setStatus(
+      setInvitationStatus(
         result.ok
           ? action === "resend"
             ? "Invitation resent"
             : "Invitation revoked"
-          : (result.status ?? "Update failed"),
+          : managementStatusMessage(result.status, "Update failed"),
       );
       if (result.ok) router.refresh();
     } catch {
-      setStatus("Service error");
+      setInvitationStatus("Service error");
     } finally {
       setPending(false);
     }
@@ -80,21 +102,26 @@ export function ClientMemberManagement({
 
   async function removeMember(userId: string) {
     setPending(true);
-    setStatus("");
+    clearStatuses();
     try {
       const result = await revokeClientMemberAction({
         workspaceId,
         clientOrganizationId,
         targetUserId: userId,
       });
-      setStatus(
+      memberStatus.show(
         result.ok
           ? "Client access removed"
-          : (result.status ?? "Removal failed"),
+          : managementStatusMessage(result.status, "Removal failed"),
+        result.ok
+          ? "success"
+          : result.status === "required-project-authority"
+            ? "warning"
+            : "danger",
       );
       if (result.ok) router.refresh();
     } catch {
-      setStatus("Service error");
+      memberStatus.show("Service error", "danger");
     } finally {
       setPending(false);
     }
@@ -152,7 +179,7 @@ export function ClientMemberManagement({
         )}
 
         <p className="ops-management-status" aria-live="polite">
-          {status}
+          {inviteStatus}
         </p>
       </section>
 
@@ -172,6 +199,16 @@ export function ClientMemberManagement({
             {detail.members.length} active
           </span>
         </div>
+
+        {memberStatus.status ? (
+          <p
+            className="ops-management-status ops-management-section-status"
+            data-tone={memberStatus.status.tone}
+            aria-live="polite"
+          >
+            {memberStatus.status.message}
+          </p>
+        ) : null}
 
         {detail.members.length === 0 ? (
           <div className="ops-inline-empty">
@@ -232,6 +269,15 @@ export function ClientMemberManagement({
             {detail.invitations.length} in queue
           </span>
         </div>
+
+        {invitationStatus ? (
+          <p
+            className="ops-management-status ops-management-section-status"
+            aria-live="polite"
+          >
+            {invitationStatus}
+          </p>
+        ) : null}
 
         {detail.invitations.length === 0 ? (
           <div className="ops-inline-empty">

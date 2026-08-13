@@ -47,3 +47,15 @@ The database suite verifies the invitation-only identity bridge for existing and
 ## M08 Visual Foundation
 
 M08 adds token contrast checks, product-shell integration tests, Radix focus checks, responsive/reduced-motion assertions, and a lightweight browser visual smoke. These tests verify the shared visual and navigation foundation without introducing Project data or a component-catalogue route.
+
+## M09 Project and Activity Core
+
+`tests/database/project-core.integration.test.ts` covers the authoritative Draft Project aggregate, persisted Project assignments, Owner/assigned-role access, Client Draft exclusion, optimistic row versioning, atomic required-role reassignment, cross-tenant member rejection, immediate revocation, archived Client Organization authority loss, Draft hard-delete eligibility, exact-Project Activity delete scoping, immutable Activity, Client-safe DTO and Activity visibility, shared state/Activity/Outbox/idempotency rollback, and deterministic development-seed replay/version validation.
+
+`tests/authorization/policy-matrix.test.ts` extends the M07 policy surface with persisted-M09-compatible Project lifecycle and assignment semantics while preserving the M08 capability-aware navigation contract.
+
+### M09 product population coverage
+
+`tests/database/m09-product-population.integration.test.ts` closes the M07-to-M09 Client Organization authorization handoff for assigned Delivery Managers, including Client invitation/member management, and proves required Delivery Manager / Client Approver upstream memberships cannot be orphaned. `tests/integration/m09-project-surfaces.test.tsx` covers Client-to-Project creation context, explicit authority reassignment confirmation, and in-product Draft deletion confirmation.
+
+- M09 Product population tests also lock capability-aware Draft links: a Workspace Delivery Manager assigned to a Project only as `AGENCY_MEMBER` may see the Project but must not receive Project-management affordances.

@@ -5,8 +5,8 @@ import { z } from "zod";
 
 import { ClientMemberManagement } from "../../../../modules/agency/components/client-member-management";
 import {
-  canManageClientMembers,
-  canViewClientOrganization,
+  canCreateProject,
+  canViewAgencyWorkspace,
 } from "../../../../modules/authorization/policies";
 import {
   getCurrentActorContext,
@@ -15,6 +15,8 @@ import {
 } from "../../../../modules/authorization/server/authorization";
 import { SessionRefresh } from "../../../../modules/auth/components/session-refresh";
 import { getClientOrganizationDetail } from "../../../../modules/memberships/queries";
+import { resolveClientOrganizationAuthorization } from "../../../../modules/projects/client-organization-authorization";
+import { listAgencyProjectsForClientOrganization } from "../../../../modules/projects/queries";
 import { getApplicationDatabase } from "../../../../server/database";
 
 type PageProps = Readonly<{
@@ -24,6 +26,13 @@ type PageProps = Readonly<{
 
 function firstValue(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
+}
+
+function lifecycleLabel(lifecycle: string): string {
+  return lifecycle
+    .toLowerCase()
+    .replaceAll("_", " ")
+    .replace(/^\w/, (character) => character.toUpperCase());
 }
 
 export default async function ClientOrganizationDetailPage({
@@ -50,29 +59,70 @@ export default async function ClientOrganizationDetailPage({
     redirect(`/access?returnTo=${encodeURIComponent(returnTo)}`);
   }
 
-  const result = await resolveAuthorizedAgencyWorkspaceSelection(
+  const workspaceResult = await resolveAuthorizedAgencyWorkspaceSelection(
     database,
     actor,
     {
       requestedWorkspaceId,
-      policy: canViewClientOrganization,
+      policy: canViewAgencyWorkspace,
     },
   );
-  if (result.status === "not-found") notFound();
-  if (result.status === "denied") {
-    logAuthorizationDenied(result.result, "agency.client-organization.detail");
+  if (workspaceResult.status === "not-found") notFound();
+  if (workspaceResult.status === "denied") {
+    logAuthorizationDenied(
+      workspaceResult.result,
+      "agency.client-organization.detail.workspace",
+    );
     redirect("/access-denied");
   }
 
-  const { selected } = result.selection;
-  const detail = await getClientOrganizationDetail(database, {
-    scope: selected.scope,
-    clientOrganizationId,
-    now: new Date(),
-  });
+  const { selected } = workspaceResult.selection;
+  const detailAuthorization = await resolveClientOrganizationAuthorization(
+    database,
+    actor,
+    {
+      workspaceId: selected.workspaceId,
+      clientOrganizationId,
+      capability: "VIEW_CLIENT_ORGANIZATION",
+    },
+  );
+  if (detailAuthorization.status === "not-found") notFound();
+  if (detailAuthorization.status === "denied") {
+    logAuthorizationDenied(
+      detailAuthorization.result,
+      "agency.client-organization.detail",
+    );
+    redirect("/access-denied");
+  }
+
+  const viewScope = {
+    workspaceId: selected.workspaceId,
+    capability: "VIEW_CLIENT_ORGANIZATION" as const,
+  };
+  const [detail, projects, managementAuthorization] = await Promise.all([
+    getClientOrganizationDetail(database, {
+      scope: viewScope,
+      clientOrganizationId,
+      now: new Date(),
+    }),
+    listAgencyProjectsForClientOrganization(
+      database,
+      actor,
+      viewScope,
+      clientOrganizationId,
+    ),
+    resolveClientOrganizationAuthorization(database, actor, {
+      workspaceId: selected.workspaceId,
+      clientOrganizationId,
+      capability: "MANAGE_CLIENT_MEMBERS",
+    }),
+  ]);
   if (!detail) notFound();
 
-  const canManage = canManageClientMembers(actor, selected.workspaceId).allowed;
+  const canManage = managementAuthorization.status === "allowed";
+  const canCreateProjectForClient =
+    detail.status === "ACTIVE" &&
+    canCreateProject(actor, selected.workspaceId).allowed;
   const pendingInvitationCount = detail.invitations.filter(
     (invitation) => invitation.status === "PENDING",
   ).length;
@@ -94,7 +144,7 @@ export default async function ClientOrganizationDetailPage({
           <p className="ops-page-kicker">Client organization</p>
           <h1>{detail.name}</h1>
           <p>
-            Client access, membership, and delivery context in{" "}
+            Client access, membership, and assigned delivery context in{" "}
             {selected.workspaceName}.
           </p>
         </div>
@@ -137,8 +187,8 @@ export default async function ClientOrganizationDetailPage({
             <strong>{pendingInvitationCount}</strong>
           </article>
           <article>
-            <span>Projects</span>
-            <strong>—</strong>
+            <span>Visible projects</span>
+            <strong>{projects.length}</strong>
           </article>
           <article>
             <span>Workspace</span>
@@ -158,27 +208,72 @@ export default async function ClientOrganizationDetailPage({
             <p className="ops-section-label">Delivery</p>
             <h2 id="client-projects-heading">Projects</h2>
           </div>
-          <span className="ops-section-meta">No active delivery yet</span>
+          {canCreateProjectForClient ? (
+            <Link
+              className="ops-quiet-action"
+              href={`/agency/projects/new?workspaceId=${selected.workspaceId}&clientOrganizationId=${clientOrganizationId}`}
+            >
+              New project
+            </Link>
+          ) : (
+            <span className="ops-section-meta">{projects.length} visible</span>
+          )}
         </div>
         <div className="ops-data-table ops-client-projects-table">
           <div className="ops-data-table-row ops-data-table-header">
             <span>Project</span>
             <span>Stage</span>
             <span>Owner</span>
-            <span>Health</span>
+            <span>Target</span>
           </div>
-          <div className="ops-data-table-empty ops-data-table-empty-compact">
-            <div className="ops-empty-symbol" aria-hidden="true">
-              +
+          {projects.length === 0 ? (
+            <div className="ops-data-table-empty ops-data-table-empty-compact">
+              <div className="ops-empty-symbol" aria-hidden="true">
+                +
+              </div>
+              <div>
+                <strong>No assigned projects visible</strong>
+                <span>
+                  Project rows appear only when the current actor has Project
+                  authority.
+                </span>
+              </div>
             </div>
-            <div>
-              <strong>No projects connected yet</strong>
-              <span>
-                Delivery relationships will collect here as client work becomes
-                active.
-              </span>
-            </div>
-          </div>
+          ) : (
+            projects.map((project) => {
+              const content = (
+                <>
+                  <span className="ops-table-primary">
+                    <strong>{project.title}</strong>
+                    <small>Project</small>
+                  </span>
+                  <span>{lifecycleLabel(project.lifecycle)}</span>
+                  <span>{project.deliveryManagerName}</span>
+                  <span className="ops-table-muted">
+                    {project.targetCompletionDate ?? "Not set"}
+                  </span>
+                </>
+              );
+
+              return project.lifecycle === "DRAFT" &&
+                project.canManageProject ? (
+                <Link
+                  className="ops-data-table-row ops-data-table-link"
+                  key={project.projectId}
+                  href={`/agency/projects/${project.projectId}/setup?workspaceId=${selected.workspaceId}`}
+                >
+                  {content}
+                </Link>
+              ) : (
+                <div
+                  className="ops-data-table-row ops-data-table-static"
+                  key={project.projectId}
+                >
+                  {content}
+                </div>
+              );
+            })
+          )}
         </div>
       </section>
 
@@ -207,8 +302,8 @@ export default async function ClientOrganizationDetailPage({
           <div className="ops-readonly-note" id="access">
             <strong>Read-only access</strong>
             <span>
-              This client organization is visible in your current delivery
-              context.
+              Client member management requires Agency Owner authority or an
+              active Delivery Manager assignment in this organization.
             </span>
           </div>
         )}

@@ -15,6 +15,7 @@ import {
 } from "../../../modules/authorization/server/authorization";
 import { SessionRefresh } from "../../../modules/auth/components/session-refresh";
 import { listClientOrganizationsForWorkspace } from "../../../modules/memberships/queries";
+import { listAssignedDeliveryManagerClientOrganizationIds } from "../../../modules/projects/client-organization-authorization";
 import { getApplicationDatabase } from "../../../server/database";
 
 type PageProps = Readonly<{
@@ -70,10 +71,16 @@ export default async function ClientOrganizationsPage({
     actor,
     selected.workspaceId,
   ).allowed;
-  const canOpenClientDetail = canViewClientOrganization(
+  const canOpenEveryClientDetail = canViewClientOrganization(
     actor,
     selected.workspaceId,
   ).allowed;
+  const assignedClientOrganizationIds =
+    await listAssignedDeliveryManagerClientOrganizationIds(
+      database,
+      actor,
+      selected.workspaceId,
+    );
 
   return (
     <main className="ops-workspace ops-collection-page">
@@ -104,7 +111,7 @@ export default async function ClientOrganizationsPage({
               </div>
               <ClientOrganizationCreateForm
                 workspaceId={selected.workspaceId}
-                openCreatedOrganization={canOpenClientDetail}
+                openCreatedOrganization={canOpenEveryClientDetail}
               />
             </div>
           </details>
@@ -173,6 +180,11 @@ export default async function ClientOrganizationsPage({
             </div>
           ) : (
             organizations.map((organization) => {
+              const canOpenClientDetail =
+                canOpenEveryClientDetail ||
+                assignedClientOrganizationIds.has(
+                  organization.clientOrganizationId,
+                );
               const rowContent = (
                 <>
                   <span className="ops-table-primary">
@@ -180,7 +192,7 @@ export default async function ClientOrganizationsPage({
                     <small>Client organization</small>
                   </span>
                   <span>{organization.activeMemberCount}</span>
-                  <span className="ops-table-muted">—</span>
+                  <span>{organization.projectCount}</span>
                   <span>
                     <span
                       className="ops-status-chip"

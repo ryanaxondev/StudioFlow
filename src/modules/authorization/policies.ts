@@ -191,14 +191,23 @@ export function canViewProject(
       return deny("VIEW_PROJECT", "NO_WORKSPACE_MEMBERSHIP");
     }
 
-    if (workspaceMembership.role !== actorAssignment.role) {
-      return deny("VIEW_PROJECT", "PROJECT_CONTEXT_MISMATCH");
-    }
+    const validAgencyAssignment =
+      workspaceMembership.role === "DELIVERY_MANAGER"
+        ? actorAssignment.role === "DELIVERY_MANAGER" ||
+          actorAssignment.role === "AGENCY_MEMBER"
+        : workspaceMembership.role === "AGENCY_MEMBER" &&
+          actorAssignment.role === "AGENCY_MEMBER";
 
-    return allow("VIEW_PROJECT");
+    return validAgencyAssignment
+      ? allow("VIEW_PROJECT")
+      : deny("VIEW_PROJECT", "PROJECT_CONTEXT_MISMATCH");
   }
 
   if (actorAssignment?.kind === "CLIENT") {
+    if (subject.lifecycle === "DRAFT") {
+      return deny("VIEW_PROJECT", "PROJECT_DRAFT_AGENCY_ONLY");
+    }
+
     const hasClientMembership = actor.clientMemberships.some(
       (membership) =>
         membership.clientOrganizationId ===
@@ -211,6 +220,59 @@ export function canViewProject(
   }
 
   return deny("VIEW_PROJECT", "PROJECT_ASSIGNMENT_REQUIRED");
+}
+
+function projectAgencyManagerPolicy<Capability extends AuthorizationCapability>(
+  actor: ActorContext,
+  subject: ProjectPolicySubject,
+  capability: Capability,
+): CapabilityResult<Capability> {
+  const workspaceMembership = actor.workspaceMemberships.find(
+    (membership) => membership.workspaceId === subject.workspaceId,
+  );
+
+  if (workspaceMembership?.role === "AGENCY_OWNER") {
+    return allow(capability);
+  }
+
+  if (!workspaceMembership) {
+    return deny(capability, "NO_WORKSPACE_MEMBERSHIP");
+  }
+
+  if (
+    workspaceMembership.role === "DELIVERY_MANAGER" &&
+    subject.actorAssignment?.kind === "AGENCY" &&
+    subject.actorAssignment.role === "DELIVERY_MANAGER"
+  ) {
+    return allow(capability);
+  }
+
+  return deny(capability, "PROJECT_ASSIGNMENT_REQUIRED");
+}
+
+export function canEditProjectSettings(
+  actor: ActorContext,
+  subject: ProjectPolicySubject,
+): CapabilityResult<"EDIT_PROJECT_SETTINGS"> {
+  return projectAgencyManagerPolicy(actor, subject, "EDIT_PROJECT_SETTINGS");
+}
+
+export function canManageProjectMembers(
+  actor: ActorContext,
+  subject: ProjectPolicySubject,
+): CapabilityResult<"MANAGE_PROJECT_MEMBERS"> {
+  return projectAgencyManagerPolicy(actor, subject, "MANAGE_PROJECT_MEMBERS");
+}
+
+export function canDeleteDraftProject(
+  actor: ActorContext,
+  subject: ProjectPolicySubject,
+): CapabilityResult<"DELETE_DRAFT_PROJECT"> {
+  if (subject.lifecycle !== "DRAFT") {
+    return deny("DELETE_DRAFT_PROJECT", "ROLE_FORBIDDEN");
+  }
+
+  return projectAgencyManagerPolicy(actor, subject, "DELETE_DRAFT_PROJECT");
 }
 
 export function canEnterClientPortal(
