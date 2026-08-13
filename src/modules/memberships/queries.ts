@@ -7,6 +7,7 @@ import {
   clientOrganizations,
   invitations,
   users,
+  workspaceBranding,
   workspaceMembers,
   workspaces,
   type WorkspaceRole,
@@ -383,4 +384,45 @@ export async function getClientOrganizationDetail(
     members,
     invitations: latestActionableInvitations(invitationRows, input.now),
   };
+}
+
+export type ClientPortalShellContext = Readonly<{
+  workspaceName: string;
+  clientOrganizationName: string;
+  appliedAccentHex: string | null;
+}>;
+
+export async function listClientPortalShellContexts(
+  database: DatabaseClient,
+  userId: string,
+): Promise<readonly ClientPortalShellContext[]> {
+  return database.db
+    .select({
+      workspaceName: workspaces.name,
+      clientOrganizationName: clientOrganizations.name,
+      appliedAccentHex: workspaceBranding.appliedAccentHex,
+    })
+    .from(clientMembers)
+    .innerJoin(users, eq(users.id, clientMembers.userId))
+    .innerJoin(
+      clientOrganizations,
+      and(
+        eq(clientOrganizations.id, clientMembers.clientOrganizationId),
+        eq(clientOrganizations.workspaceId, clientMembers.workspaceId),
+      ),
+    )
+    .innerJoin(workspaces, eq(workspaces.id, clientMembers.workspaceId))
+    .leftJoin(
+      workspaceBranding,
+      eq(workspaceBranding.workspaceId, workspaces.id),
+    )
+    .where(
+      and(
+        eq(clientMembers.userId, userId),
+        eq(clientMembers.status, "ACTIVE"),
+        eq(clientOrganizations.status, "ACTIVE"),
+        isNull(users.disabledAt),
+      ),
+    )
+    .orderBy(asc(workspaces.name), asc(clientOrganizations.name));
 }

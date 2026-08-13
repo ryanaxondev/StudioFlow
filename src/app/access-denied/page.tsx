@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import Link from "next/link";
 
+import { UtilityStateFrame } from "../../components/brand/utility-state-frame";
 import { resolveRoleBasedLanding } from "../../modules/authorization/policies";
 import { getCurrentActorContext } from "../../modules/authorization/server/authorization";
 import { SignOutButton } from "../../modules/auth/components/sign-out-button";
@@ -17,23 +18,20 @@ export default async function AccessDeniedPage() {
   const landing = actor ? resolveRoleBasedLanding(actor) : null;
 
   return (
-    <main className="auth-shell">
-      <section className="auth-card" aria-labelledby="access-denied-heading">
-        <p className="auth-brand">StudioFlow</p>
-        <h1 id="access-denied-heading">Access Denied</h1>
-        <p className="auth-method">
-          This account cannot open the requested destination. Protected object
-          details are intentionally not shown here.
-        </p>
-        <div className="auth-actions">
-          <Link className="auth-primary-link" href={landing?.href ?? "/access"}>
-            {landing ? "Return to your valid home" : "Return to sign in"}
-          </Link>
-          {actor ? (
-            <SignOutButton destination="/access" label="Switch account" />
-          ) : null}
+    <UtilityStateFrame
+      code="403"
+      eyebrow="Permission boundary"
+      title="Access Denied"
+      description="This account cannot open the requested destination. The protected object stays outside the current product context."
+    >
+      <Link className="utility-primary-link" href={landing?.href ?? "/access"}>
+        {landing ? "Return to your valid home" : "Return to sign in"}
+      </Link>
+      {actor ? (
+        <div className="utility-signout">
+          <SignOutButton destination="/access" label="Switch account" />
         </div>
-      </section>
-    </main>
+      ) : null}
+    </UtilityStateFrame>
   );
 }

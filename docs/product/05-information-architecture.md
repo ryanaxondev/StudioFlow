@@ -347,9 +347,21 @@ The Agency Workspace Shell provides:
 
 ### Primary Global Navigation
 
+The conceptual Agency destinations are:
+
 1. Delivery
 2. Projects
 3. Clients
+
+Rendered navigation is **capability-projected**, not a promise that every Agency role sees every destination. The server authorization model remains authoritative and the shell exposes only destinations the current actor may enter. This applies consistently to the desktop context navigation, mobile primary navigation, product-rail landing, search/command actions, and role-based landing.
+
+For the approved MVP workspace roles:
+
+- Agency Owner → Delivery, Projects, Clients
+- Delivery Manager → Delivery, Projects, Clients, with object-detail access still constrained by assignment rules
+- Agency Member → Projects only
+
+A destination hidden from navigation remains protected at the route boundary. Hiding unauthorized navigation is a UX projection and never replaces server-side authorization.
 
 ### Utility Navigation
 
@@ -2802,6 +2814,8 @@ The final surface choice belongs to Screen Inventory and interaction design.
 | Agency Delivery may aggregate exceptions across Projects                                     | Approved                 |
 | Client Portal global search                                                                  | Rejected for MVP         |
 | Agency global search covers Projects, Client Organizations, and Client Members               | Approved                 |
+| Agency navigation and command actions are capability-projected                               | Approved                 |
+| Hidden navigation never replaces route authorization                                         | Approved                 |
 | Deliverables in Agency global search                                                         | Deferred                 |
 | Agency Member sees Delivery Overview                                                         | Rejected                 |
 | Deep links preserve exact object intent                                                      | Approved                 |

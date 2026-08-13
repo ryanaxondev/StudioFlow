@@ -40,7 +40,10 @@ export default async function AgencyMembersPage({ searchParams }: PageProps) {
   const result = await resolveAuthorizedAgencyWorkspaceSelection(
     database,
     actor,
-    { requestedWorkspaceId, policy: canManageAgencyMembers },
+    {
+      requestedWorkspaceId,
+      policy: canManageAgencyMembers,
+    },
   );
   if (result.status === "not-found") notFound();
   if (result.status === "denied") {
@@ -54,28 +57,26 @@ export default async function AgencyMembersPage({ searchParams }: PageProps) {
     selected.scope,
     new Date(),
   );
+  const pendingInvitationCount = state.invitations.filter(
+    (invitation) => invitation.status === "PENDING",
+  ).length;
 
   return (
-    <main className="management-shell">
+    <main className="ops-workspace ops-members-page">
       <SessionRefresh
         returnTo={`/agency/settings/members?workspaceId=${encodeURIComponent(selected.workspaceId)}`}
       />
-      <header className="management-header">
+
+      <header className="ops-page-header ops-collection-header">
         <div>
-          <p className="auth-brand">StudioFlow</p>
-          <h1>Agency Members</h1>
-          <p>{selected.workspaceName}</p>
+          <p className="ops-page-kicker">Workspace access</p>
+          <h1>Agency members</h1>
+          <p>People, roles, and invitations for {selected.workspaceName}.</p>
         </div>
-        <nav aria-label="Workspace utilities">
-          <Link href={`/agency/clients?workspaceId=${selected.workspaceId}`}>
-            Clients
-          </Link>
-          <Link href="/account">Account</Link>
-        </nav>
       </header>
 
       {options.length > 1 ? (
-        <nav className="management-contexts" aria-label="Workspace context">
+        <nav className="ops-context-switcher" aria-label="Workspace context">
           {options.map((workspace) => (
             <Link
               key={workspace.workspaceId}
@@ -91,6 +92,23 @@ export default async function AgencyMembersPage({ searchParams }: PageProps) {
           ))}
         </nav>
       ) : null}
+
+      <div className="ops-people-pulse" aria-label="Membership summary">
+        <div>
+          <span>Active members</span>
+          <strong>{state.members.length}</strong>
+        </div>
+        <div>
+          <span>Pending invitations</span>
+          <strong>{pendingInvitationCount}</strong>
+        </div>
+        <div>
+          <span>Workspace</span>
+          <strong className="ops-people-pulse-text">
+            {selected.workspaceName}
+          </strong>
+        </div>
+      </div>
 
       <WorkspaceMemberManagement
         workspaceId={selected.workspaceId}

@@ -116,6 +116,18 @@ Role-based landing is resolved centrally:
 
 The placeholders contain no fabricated Project data. Stable Product shells and navigation belong to M08; Project records and assignment-aware screens begin later.
 
+## M08 navigation projection handoff
+
+M08 materializes the M07 capability model in product navigation without moving authorization into the browser.
+
+- Agency Owner receives the authorized Delivery, Projects, Clients, and Agency-member management destinations.
+- Delivery Manager receives Delivery, Projects, and Clients; object-detail authority continues to depend on the relevant assignment policy.
+- Agency Member receives Projects as the only primary Agency destination and role landing. Delivery, Clients, and Agency-member management are absent from sidebar/mobile navigation and command actions.
+- Product-rail/logo landing resolves to a valid role destination rather than sending a restricted actor into a known denial.
+- Direct unauthorized URLs still resolve through server policy to the same generic denial/not-found semantics.
+
+This is a UX projection of the existing authorization contract, not a new security boundary. M09 must add authoritative Project assignments to Project-level policy inputs without granting Agency Members the workspace-level Delivery Overview capability rejected by the Product Specification.
+
 ## Server Actions for authenticated Screen commands
 
 Same-origin authenticated Agency Screen commands use Server Actions in M07 rather than internal `/api/agency/*` Route Handlers.

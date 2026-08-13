@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowRightIcon } from "@phosphor-icons/react";
 import { useState } from "react";
 
 export type AccessFormProps = Readonly<{
@@ -50,26 +51,38 @@ export function AccessForm({ returnTo }: AccessFormProps) {
   const pending = state === "submitting";
 
   return (
-    <form className="auth-form" onSubmit={submit}>
-      <label className="auth-field">
-        <span>Email</span>
+    <form className="auth-form access-auth-form" onSubmit={submit}>
+      <label className="auth-field access-auth-field">
+        <span>Work email</span>
         <input
           type="email"
           name="email"
           autoComplete="email"
+          placeholder="you@agency.com"
           required
           disabled={pending}
         />
       </label>
 
-      <button className="auth-primary-action" type="submit" disabled={pending}>
-        Continue to the authenticated destination.
+      <button
+        className="auth-primary-action access-primary-action"
+        type="submit"
+        disabled={pending}
+      >
+        <span>{pending ? "Sending secure link…" : "Continue with email"}</span>
+        <ArrowRightIcon aria-hidden="true" weight="bold" />
       </button>
 
-      <div className="auth-status" aria-live="polite">
-        {state === "request-sent" ? <p>Request sent</p> : null}
-        {state === "rate-limited" ? <p>Rate limited</p> : null}
-        {state === "service-error" ? <p>Service error</p> : null}
+      <div className="auth-status access-auth-status" aria-live="polite">
+        {state === "request-sent" ? (
+          <p>Check your inbox for a secure sign-in link.</p>
+        ) : null}
+        {state === "rate-limited" ? (
+          <p>Too many attempts. Try again shortly.</p>
+        ) : null}
+        {state === "service-error" ? (
+          <p>We couldn’t send a sign-in link. Try again.</p>
+        ) : null}
       </div>
     </form>
   );

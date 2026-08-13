@@ -134,6 +134,51 @@ The visual system must support 46 approved primary Screens and 26 focused intera
 
 ---
 
+## 1.1 M08 Owner Visual Freeze — Obsidian Operations
+
+The Human Owner approved the rendered four-surface M08 prototype as the visual direction for StudioFlow. The earlier light-first interpretation is superseded.
+
+The approved direction is **Obsidian Operations**:
+
+- Dark-first Agency operations workspace
+- Three-layer product silhouette: Product Rail → Context Navigation → Workspace
+- Compact density and tool-like typography
+- Data-first composition instead of card-first dashboard layouts
+- Sparse violet/indigo interaction accent
+- Semantic emerald, amber, blue, and risk colors only when meaning exists
+- Border and tonal hierarchy before shadows
+- Product-led asymmetric authentication instead of a centered generic sign-in card
+- Command palette search with keyboard-first presentation
+- Agency mobile bottom navigation for primary destinations instead of reducing desktop navigation to a drawer
+
+The initial M08 prototype was intentionally limited to:
+
+1. Agency Delivery — Desktop
+2. Agency Delivery — Mobile
+3. StudioFlow Command Palette
+4. Access / Authentication
+
+This direction became the **approved visual foundation** for M08 propagation. The remaining Agency, Client, and shared product surfaces must inherit its design DNA while preserving audience-specific density and presentation rules. Agency surfaces remain dense and operational; Client surfaces remain calmer, clearer, and agency-first.
+
+The earlier Quiet Precision principles remain useful where they support restraint, hierarchy, and accessibility, but they no longer constrain the product to a light-first or low-character visual treatment.
+
+## 1.2 M08 Final Visual Contract
+
+The completed M08 implementation turns the owner freeze into the durable visual contract for later domain Milestones. Future Screens must extend this system rather than reintroduce the superseded light-first shell.
+
+The active contract is:
+
+- Agency product chrome is dark-first Obsidian Operations with a three-layer desktop silhouette: 56 px Product Rail → 216 px Context Navigation → Workspace.
+- Agency mobile uses a compact top context bar plus capability-aware bottom primary navigation and a `More` sheet. The bottom navigation is a real layout row rather than a fixed overlay on page content.
+- Agency navigation is projected from server capabilities. Destinations the actor cannot enter are absent from visible navigation and command actions, while direct URLs remain fail-closed at the authorization boundary.
+- Client Portal uses the same Obsidian DNA at lower density, with a calmer agency-first header and top navigation on both desktop and mobile. It does not inherit the Agency bottom navigation.
+- Access uses a product-led asymmetric composition and fits representative desktop/laptop viewports without document scroll when the content fits.
+- Invitation and Recovery preserve the desktop split composition but collapse to a compact, action-first mobile frame with one StudioFlow brand treatment.
+- Phosphor is the product-facing icon family; Radix remains an implementation detail inside existing interaction primitives where needed.
+- `ops-*` tokens are the active surface, text, border, and operational-accent palette for Obsidian product shells. The earlier `neutral-*`, `studio-*`, and semantic families remain valid foundation/reference tokens and primitive compatibility tokens, but they do not imply a light product shell.
+
+This final contract governs M09 and later Screen population unless a later owner-approved decision explicitly supersedes it and reconciles this document first.
+
 ## 2. Visual Direction Objective
 
 This document defines how the approved product structure should look and feel.
@@ -153,7 +198,7 @@ It must answer:
 11. How the design behaves on mobile
 12. Which accessibility constraints are non-negotiable
 
-This document defines visual and interaction direction.
+This document defines visual and interaction direction. The M08 Obsidian Operations owner freeze takes precedence over earlier light-first examples in this document where the two conflict.
 
 It does not define:
 
@@ -461,8 +506,8 @@ The Agency Workspace should feel:
 
 Visual characteristics:
 
-- Cool gray canvas
-- Persistent desktop navigation
+- Deep graphite operational canvas
+- Three-layer persistent desktop navigation
 - Compact page headers
 - Smaller card radius
 - Denser list rows
@@ -484,15 +529,15 @@ The Client Portal should feel:
 
 Visual characteristics:
 
-- White or slightly warm canvas
-- Agency-branded header
-- Narrower content width
-- Larger vertical spacing
-- Larger action targets
-- Fewer badges
-- More explanatory copy
-- Larger section headings
-- Agency accent on primary actions
+- Deep graphite client canvas derived from Obsidian Operations rather than the denser Agency chrome
+- Agency-branded header with a controlled agency accent
+- Narrower content width and calmer section rhythm
+- Larger vertical spacing and action targets than the Agency Workspace
+- Fewer badges and less operational metadata
+- More explanatory client-safe copy
+- Larger section headings without marketing-scale typography
+- Agency accent reserved for navigation, identity, focus, and client-facing actions
+- No persistent bottom navigation; Home and Projects remain in the compact top navigation
 
 ### 6.4 Differentiation Boundary
 
@@ -521,26 +566,52 @@ The color system has four layers:
 3. Agency accent
 4. Fixed semantic colors
 
-### 7.1 Foundation Neutral Tokens
+### 7.1 Active Obsidian Operations Surface Tokens
 
-| Token         | Value     | Primary Use                          |
+These tokens define the active product-shell palette established and validated in M08:
+
+| Token                  | Value                  | Primary Use                                      |
+| ---------------------- | ---------------------- | ------------------------------------------------ |
+| `ops-black`            | `#080A0E`              | Product rail and deepest product boundary        |
+| `ops-sidebar`          | `#0D1016`              | Agency context navigation                        |
+| `ops-canvas`           | `#0F1219`              | Primary product canvas                           |
+| `ops-surface`          | `#131720`              | Structured surface                               |
+| `ops-raised`           | `#171C26`              | Raised or emphasized surface                     |
+| `ops-interactive`      | `#1B202C`              | Interactive neutral surface                      |
+| `ops-hover`            | `#202632`              | Hover/selected neutral surface                   |
+| `ops-text`             | `#F4F6FA`              | Primary text on Obsidian surfaces                |
+| `ops-text-secondary`   | `#9AA3B2`              | Secondary text                                   |
+| `ops-text-tertiary`    | `#7C8594`              | Tertiary metadata                                |
+| `ops-violet`           | `#6C5CE7`              | StudioFlow operational accent and active control |
+| `ops-emerald`          | `#3FB98E`              | Positive/healthy operational signal              |
+| `ops-amber`            | `#E5A93D`              | Attention operational signal                     |
+| `ops-risk`             | `#E46E68`              | Risk/negative operational signal                 |
+| `ops-blue`             | `#5E9DF5`              | Informational operational signal                 |
+
+Obsidian borders use restrained translucent white values rather than bright solid lines. Tonal hierarchy and borders remain preferred over heavy elevation.
+
+### 7.2 Foundation Neutral Reference Tokens
+
+The base neutral scale remains part of the shared token system for primitives, inverse/light contexts, review-canvas controls, and compatibility. It is **not** the default shell palette after the M08 owner freeze.
+
+| Token         | Value     | Reference Use                        |
 | ------------- | --------- | ------------------------------------ |
-| `neutral-0`   | `#FFFFFF` | Primary surfaces                     |
-| `neutral-25`  | `#FAFBFC` | Client Portal canvas                 |
-| `neutral-50`  | `#F6F7F9` | Agency canvas                        |
-| `neutral-100` | `#F0F2F5` | Subtle grouped regions               |
-| `neutral-150` | `#E8EBF0` | Hovered neutral surface              |
-| `neutral-200` | `#DCE1E8` | Standard border                      |
-| `neutral-300` | `#C5CCD6` | Strong border                        |
-| `neutral-400` | `#98A2B0` | Disabled icons and secondary markers |
-| `neutral-500` | `#737D89` | Muted text                           |
-| `neutral-600` | `#59636F` | Secondary text                       |
-| `neutral-700` | `#3D4651` | Strong secondary text                |
-| `neutral-800` | `#282F38` | Primary supporting text              |
-| `neutral-900` | `#171C23` | Primary text                         |
-| `neutral-950` | `#10141A` | Review canvas and inverse surfaces   |
+| `neutral-0`   | `#FFFFFF` | Light/inverse surfaces               |
+| `neutral-25`  | `#F9FAFC` | Light contextual surface             |
+| `neutral-50`  | `#F3F5F9` | Light contextual canvas              |
+| `neutral-100` | `#ECEFF5` | Subtle grouped region                |
+| `neutral-150` | `#E3E7EF` | Hovered light neutral surface        |
+| `neutral-200` | `#D7DDE7` | Standard light border                |
+| `neutral-300` | `#BEC7D5` | Strong light border                  |
+| `neutral-400` | `#8D98AA` | Disabled icons and secondary markers |
+| `neutral-500` | `#697487` | Muted text on light surfaces         |
+| `neutral-600` | `#4F596A` | Secondary text on light surfaces     |
+| `neutral-700` | `#374151` | Strong secondary text                |
+| `neutral-800` | `#242B3A` | Primary supporting text              |
+| `neutral-900` | `#171C2A` | Primary text on light surfaces       |
+| `neutral-950` | `#0E1320` | Review canvas / deep inverse surface |
 
-### 7.2 Text Tokens
+### 7.3 Text Tokens
 
 | Token            | Value         |
 | ---------------- | ------------- |
@@ -552,7 +623,7 @@ The color system has four layers:
 | `text-link`      | `studio-600`  |
 | `text-danger`    | `danger-700`  |
 
-### 7.3 Border Tokens
+### 7.4 Border Tokens
 
 | Token            | Value         |
 | ---------------- | ------------- |
@@ -566,19 +637,19 @@ The color system has four layers:
 
 ## 8. StudioFlow Product Accent
 
-StudioFlow uses a restrained indigo-blue accent.
+StudioFlow retains the deep indigo `studio-*` family as a shared foundation accent. On active Obsidian product chrome, `ops-violet` is the approved visible StudioFlow operational accent. Future Screens should not mix the two families arbitrarily; use the Obsidian token when extending the M08 shell language and the base StudioFlow family where an existing primitive or light/inverse context explicitly requires it.
 
 | Token        | Value     | Use                         |
 | ------------ | --------- | --------------------------- |
-| `studio-50`  | `#EEF1FF` | Soft selected backgrounds   |
-| `studio-100` | `#DEE4FF` | Highlight borders           |
-| `studio-200` | `#C5CEFF` | Selected borders            |
-| `studio-400` | `#7B89EA` | Secondary visual accents    |
-| `studio-500` | `#5C6FDE` | Focus and active controls   |
-| `studio-600` | `#4256D0` | Primary Agency action       |
-| `studio-700` | `#3547B8` | Hover                       |
-| `studio-800` | `#2C3B98` | Pressed and accessible text |
-| `studio-900` | `#222E75` | Strong product identity     |
+| `studio-50`  | `#F1F1FF` | Soft selected backgrounds   |
+| `studio-100` | `#E2E3FF` | Highlight borders           |
+| `studio-200` | `#C7CAFF` | Selected borders            |
+| `studio-400` | `#8588FF` | Secondary visual accents    |
+| `studio-500` | `#6768EE` | Focus and active controls   |
+| `studio-600` | `#4F46C9` | Primary Agency action       |
+| `studio-700` | `#4038AD` | Hover                       |
+| `studio-800` | `#322C88` | Pressed and accessible text |
+| `studio-900` | `#24205F` | Strong product identity     |
 
 ### 8.1 Accent Usage
 
@@ -604,9 +675,9 @@ Do not use it for:
 
 ### 8.2 Gradient Rule
 
-The MVP does not require a product gradient.
+Application UI may use a restrained StudioFlow-to-agency tonal transition for brand framing only, such as a thin shell edge, auth surface accent, or search-dialog identity line.
 
-A subtle tonal transition may appear in marketing or onboarding artwork later, but application UI should use flat, accessible colors.
+Gradients must not carry status meaning, reduce contrast, become a large decorative background, or compete with product content. Primary actions and state semantics remain flat, accessible colors.
 
 ---
 
@@ -643,13 +714,13 @@ Sableframe Studio uses:
 
 | Token               | Value     |
 | ------------------- | --------- |
-| `agency-accent-50`  | `#EAF5F1` |
-| `agency-accent-100` | `#D3EAE2` |
-| `agency-accent-300` | `#8BC4B5` |
-| `agency-accent-500` | `#4B8A7A` |
-| `agency-accent-600` | `#2F6D60` |
-| `agency-accent-700` | `#275B51` |
-| `agency-accent-800` | `#204A43` |
+| `agency-accent-50`  | `#EDF8F4` |
+| `agency-accent-100` | `#D5EFE7` |
+| `agency-accent-300` | `#82C9B6` |
+| `agency-accent-500` | `#2F8C74` |
+| `agency-accent-600` | `#176A5B` |
+| `agency-accent-700` | `#125548` |
+| `agency-accent-800` | `#0D4339` |
 
 Canonical primary Client Portal action:
 
@@ -1228,21 +1299,25 @@ The surface should feel formal without resembling a legal contract editor.
 
 ## 21. Iconography
 
-### 21.1 Style
+### 21.1 Product Icon Family
 
-Use a consistent outline icon family with:
+Phosphor is the approved product-facing icon family for Obsidian Operations. Radix may remain inside existing interaction primitives where replacing it provides no visible product value, but navigation, search, authentication actions, and other visible product chrome should use Phosphor.
 
-- Rounded joins
-- 1.75–2 px stroke
-- Clear shapes at 16–20 px
-- Limited internal detail
+Use:
+
+- Regular weight for default controls and navigation
+- Bold weight for the selected primary navigation destination
+- Clear shapes with limited internal detail
+- Semantic icons only when they improve scanning or clarify an action
+- The product-owned StudioFlow Flow Mark for brand identity; do not substitute a library icon for the product mark
 
 ### 21.2 Sizes
 
 - Inline metadata: 14–16 px
-- Standard controls: 16–18 px
-- Navigation: 18–20 px
-- Empty state: 24–32 px
+- Desktop navigation and toolbar: 16 px
+- Command Palette: 16 px
+- Mobile primary navigation: 20–22 px
+- Empty state: 24–28 px only when a meaningful symbol is useful
 - Do not use oversized decorative icons
 
 ### 21.3 Status Icons
@@ -1303,30 +1378,39 @@ Do not use a crown or gamified treatment.
 
 ## 23.1 Agency Desktop Shell
 
-Recommended composition:
+The approved M08 composition is a three-layer product silhouette:
 
-- Persistent left navigation
-- Workspace identity near the top
-- Global items: Delivery, Projects, Clients
-- Search entry
-- Account and Settings utility near the bottom
-- Project-local navigation inside the content shell
+1. **Product Rail — 56 px**
+   - StudioFlow Flow Mark / product entry
+   - Sparse product-level utilities
+   - Role-safe landing destination
+2. **Context Navigation — approximately 216 px**
+   - Workspace identity
+   - Capability-projected global destinations
+   - Search entry
+   - Account/settings utilities when authorized
+3. **Workspace**
+   - 48 px context bar where applicable
+   - Page header, operational collections, and Project-local navigation
 
-Reference width:
+Delivery, Projects, and Clients are conceptual Agency destinations, but only authorized destinations are rendered. Agency Members therefore receive Projects as their primary global destination and product landing; hidden links do not weaken direct-route authorization.
 
-- Expanded: 224–240 px
-- Collapsed mode may be considered for medium desktop widths
-
-The navigation should use border and selected background rather than a fully colored sidebar.
+The rail and context navigation use tonal graphite separation, restrained borders, and selected-state backgrounds rather than a fully colored sidebar. Do not collapse the product back into the earlier single light sidebar model.
 
 ## 23.2 Agency Mobile Shell
 
-Use:
+The approved mobile shell uses:
 
-- Compact top application bar
-- Accessible menu or navigation sheet
-- Project context preserved in header
-- Primary urgent action visible without opening navigation
+- Compact top context bar
+- Main content as the only scrolling middle row
+- Capability-aware bottom primary navigation
+- A `More` sheet for secondary utilities and account access
+- Device safe-area handling owned by the shell
+- Project context preserved in the top bar and Project-local switcher
+
+The shell is a true three-row layout (`top bar → scrolling content → bottom navigation`), not a fixed bottom overlay with page-specific clearance padding.
+
+Primary mobile destinations are projected from the same server capabilities as desktop navigation. An Agency Member therefore sees Projects plus `More`, not disabled links to Delivery or Clients. Direct unauthorized URLs remain protected by server policy.
 
 Do not attempt to reproduce a miniature desktop sidebar.
 
@@ -2791,13 +2875,14 @@ Do not:
 
 | Decision                                                                       | Status                                                      |
 | ------------------------------------------------------------------------------ | ----------------------------------------------------------- |
-| Core visual concept: Quiet Precision                                           | Approved                                                    |
+| Core visual concept: Obsidian Operations                                       | Approved                                                    |
+| Quiet Precision as supporting restraint/hierarchy principle                    | Retained; no longer the primary shell concept               |
 | One shared foundation with distinct Agency and Client density                  | Approved                                                    |
 | Agency Workspace uses StudioFlow accent                                        | Approved                                                    |
 | Client Portal uses controlled agency accent                                    | Approved                                                    |
 | Agency color may override semantic colors                                      | Rejected                                                    |
-| Foundation is light mode                                                       | Approved                                                    |
-| Full product dark mode in MVP                                                  | Rejected                                                    |
+| Light-first product-shell foundation                                           | Superseded by M08 owner freeze                              |
+| Dark-first Obsidian Operations product-shell foundation                        | Approved                                                    |
 | Review canvas defaults to dark with explicit Light and checker controls        | Approved                                                    |
 | StudioFlow primary accent is restrained indigo-blue                            | Approved                                                    |
 | Sableframe canonical accent is deep evergreen                                  | Approved                                                    |
@@ -2807,6 +2892,8 @@ Do not:
 | Heavy elevation and glass effects                                              | Rejected                                                    |
 | Agency interface is denser than Client Portal                                  | Approved                                                    |
 | Client Portal mobile navigation uses top navigation for Home and Projects      | Approved                                                    |
+| Agency navigation is capability-projected on desktop, mobile, and command UI   | Approved                                                    |
+| Hidden navigation never replaces server-side authorization                    | Approved                                                    |
 | Status always includes text and structural cue                                 | Approved                                                    |
 | Waiting on Client uses informational rather than danger treatment              | Approved                                                    |
 | Revision and scope context use fixed purple semantic family                    | Approved                                                    |
@@ -2975,7 +3062,7 @@ All criteria are satisfied.
 
 The Visual Direction is approved because:
 
-- `Quiet Precision` provides one coherent visual concept across all 46 Screens.
+- `Obsidian Operations` provides the approved product-shell concept across Agency, Client, and shared surfaces, while Quiet Precision remains a supporting restraint principle.
 - StudioFlow, agency, and client identities have explicit visual roles.
 - Inter Variable is fixed as the primary type family.
 - StudioFlow indigo and Sableframe evergreen are clearly separated.
@@ -2986,8 +3073,10 @@ The Visual Direction is approved because:
 - Binding Decisions have consistent visual ceremony.
 - Agency Project navigation no longer has an unresolved structural choice.
 - Client mobile navigation avoids conflict with sticky Decision actions.
+- Agency desktop and mobile shells have a durable three-layer / three-row architecture and capability-aware navigation projection.
+- Access, Invitation, Recovery, Access Denied, and Not Found share the approved Obsidian product-boundary language.
 - Signature Screens have implementable composition requirements.
-- No unresolved visual question blocks Engineering Architecture.
+- No unresolved visual question blocks Engineering Architecture or the M09 Project Core.
 
 ---
 

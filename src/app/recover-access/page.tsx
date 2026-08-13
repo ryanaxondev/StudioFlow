@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { SharedAccessFrame } from "../../components/brand/shared-access-frame";
 import { normalizeReturnTo } from "../../modules/auth/redirects";
 
 type RecoveryPageProps = Readonly<{
@@ -49,22 +50,24 @@ export default async function RecoverAccessPage({
   const requestLink = `/access?returnTo=${encodeURIComponent(returnTo)}`;
 
   return (
-    <main className="auth-shell">
-      <section className="auth-card" aria-labelledby="recovery-heading">
-        <p className="auth-brand">StudioFlow</p>
-        <h1 id="recovery-heading">Invitation and Link Recovery</h1>
-        <p className="auth-recovery-state">{recoveryState(parameters)}</p>
-        <p className="auth-method">{recoveryGuidance(parameters)}</p>
-
-        <div className="auth-actions">
-          <Link className="auth-primary-link" href={requestLink}>
-            Request a new access link.
-          </Link>
-          <Link className="auth-text-link" href="/access">
-            Return to sign in
-          </Link>
-        </div>
-      </section>
-    </main>
+    <SharedAccessFrame
+      eyebrow="Access recovery"
+      title="Invitation and Link Recovery"
+      description="Restore a valid path into StudioFlow without exposing workspace or client details from an invalid link."
+    >
+      <div className="shared-recovery-state">
+        <span>Status</span>
+        <strong>{recoveryState(parameters)}</strong>
+      </div>
+      <p className="shared-recovery-guidance">{recoveryGuidance(parameters)}</p>
+      <div className="shared-access-actions">
+        <Link className="shared-primary-link" href={requestLink}>
+          Request a new access link
+        </Link>
+        <Link className="shared-secondary-link" href="/access">
+          Return to sign in
+        </Link>
+      </div>
+    </SharedAccessFrame>
   );
 }

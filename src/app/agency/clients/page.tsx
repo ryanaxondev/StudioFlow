@@ -5,7 +5,6 @@ import { notFound, redirect } from "next/navigation";
 import { ClientOrganizationCreateForm } from "../../../modules/agency/components/client-organization-create-form";
 import {
   canCreateClientOrganization,
-  canManageAgencyMembers,
   canViewClientOrganization,
   canViewClientOrganizations,
 } from "../../../modules/authorization/policies";
@@ -24,6 +23,10 @@ type PageProps = Readonly<{
 
 function firstValue(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
+}
+
+function statusLabel(status: "ACTIVE" | "ARCHIVED"): string {
+  return status === "ACTIVE" ? "Active" : "Archived";
 }
 
 export default async function ClientOrganizationsPage({
@@ -47,7 +50,10 @@ export default async function ClientOrganizationsPage({
   const result = await resolveAuthorizedAgencyWorkspaceSelection(
     database,
     actor,
-    { requestedWorkspaceId, policy: canViewClientOrganizations },
+    {
+      requestedWorkspaceId,
+      policy: canViewClientOrganizations,
+    },
   );
   if (result.status === "not-found") notFound();
   if (result.status === "denied") {
@@ -60,10 +66,6 @@ export default async function ClientOrganizationsPage({
     database,
     selected.scope,
   );
-  const canManageMembers = canManageAgencyMembers(
-    actor,
-    selected.workspaceId,
-  ).allowed;
   const canCreateClient = canCreateClientOrganization(
     actor,
     selected.workspaceId,
@@ -74,30 +76,43 @@ export default async function ClientOrganizationsPage({
   ).allowed;
 
   return (
-    <main className="management-shell">
+    <main className="ops-workspace ops-collection-page">
       <SessionRefresh
         returnTo={`/agency/clients?workspaceId=${encodeURIComponent(selected.workspaceId)}`}
       />
-      <header className="management-header">
+
+      <header className="ops-page-header ops-collection-header">
         <div>
-          <p className="auth-brand">StudioFlow</p>
-          <h1>Client Organizations</h1>
-          <p>{selected.workspaceName}</p>
+          <p className="ops-page-kicker">Relationships</p>
+          <h1>Clients</h1>
+          <p>
+            Organizations connected to {selected.workspaceName} and their access
+            context.
+          </p>
         </div>
-        <nav aria-label="Workspace utilities">
-          {canManageMembers ? (
-            <Link
-              href={`/agency/settings/members?workspaceId=${selected.workspaceId}`}
-            >
-              Agency Members
-            </Link>
-          ) : null}
-          <Link href="/account">Account</Link>
-        </nav>
+        {canCreateClient ? (
+          <details className="ops-create-disclosure">
+            <summary className="ops-primary-action">Add client</summary>
+            <div className="ops-create-popover">
+              <div className="ops-create-popover-copy">
+                <span className="ops-section-label">New organization</span>
+                <strong>Add a client organization</strong>
+                <p>
+                  Create the client context first. Delivery work can be
+                  connected later.
+                </p>
+              </div>
+              <ClientOrganizationCreateForm
+                workspaceId={selected.workspaceId}
+                openCreatedOrganization={canOpenClientDetail}
+              />
+            </div>
+          </details>
+        ) : null}
       </header>
 
       {options.length > 1 ? (
-        <nav className="management-contexts" aria-label="Workspace context">
+        <nav className="ops-context-switcher" aria-label="Workspace context">
           {options.map((workspace) => (
             <Link
               key={workspace.workspaceId}
@@ -114,46 +129,90 @@ export default async function ClientOrganizationsPage({
         </nav>
       ) : null}
 
-      {canCreateClient ? (
-        <section
-          className="management-panel"
-          aria-labelledby="create-client-heading"
-        >
-          <h2 id="create-client-heading">Create Client Organization</h2>
-          <ClientOrganizationCreateForm
-            workspaceId={selected.workspaceId}
-            openCreatedOrganization={canOpenClientDetail}
-          />
-        </section>
-      ) : null}
-
       <section
-        className="management-panel"
-        aria-labelledby="client-list-heading"
+        className="ops-collection-section"
+        aria-labelledby="clients-heading"
       >
-        <h2 id="client-list-heading">Organizations</h2>
-        {organizations.length === 0 ? (
-          <p className="management-muted">No Client Organizations yet.</p>
-        ) : (
-          <div className="management-list">
-            {organizations.map((organization) => (
-              <Link
-                className="management-row management-row-link"
-                key={organization.clientOrganizationId}
-                href={`/agency/clients/${organization.clientOrganizationId}?workspaceId=${selected.workspaceId}`}
-              >
-                <div>
-                  <strong>{organization.name}</strong>
-                  <span>
-                    {organization.activeMemberCount} active member
-                    {organization.activeMemberCount === 1 ? "" : "s"}
-                  </span>
-                </div>
-                <span>{organization.status}</span>
-              </Link>
-            ))}
+        <div className="ops-section-heading ops-collection-heading">
+          <div>
+            <p className="ops-section-label">Organizations</p>
+            <h2 id="clients-heading">Client organizations</h2>
           </div>
-        )}
+          <span className="ops-section-meta">
+            {organizations.length}{" "}
+            {organizations.length === 1 ? "client" : "clients"}
+          </span>
+        </div>
+
+        <div
+          className="ops-data-table ops-clients-table"
+          aria-label="Client organizations"
+        >
+          <div className="ops-data-table-row ops-data-table-header">
+            <span>Client</span>
+            <span>Members</span>
+            <span>Projects</span>
+            <span>Status</span>
+          </div>
+
+          {organizations.length === 0 ? (
+            <div className="ops-data-table-empty">
+              <div
+                className="ops-empty-symbol ops-empty-symbol-client"
+                aria-hidden="true"
+              >
+                C
+              </div>
+              <div>
+                <strong>No client organizations yet</strong>
+                <span>
+                  Add the first client to establish a secure organization
+                  context.
+                </span>
+              </div>
+            </div>
+          ) : (
+            organizations.map((organization) => {
+              const rowContent = (
+                <>
+                  <span className="ops-table-primary">
+                    <strong>{organization.name}</strong>
+                    <small>Client organization</small>
+                  </span>
+                  <span>{organization.activeMemberCount}</span>
+                  <span className="ops-table-muted">—</span>
+                  <span>
+                    <span
+                      className="ops-status-chip"
+                      data-tone={
+                        organization.status === "ACTIVE" ? "success" : "neutral"
+                      }
+                    >
+                      {statusLabel(organization.status)}
+                    </span>
+                  </span>
+                </>
+              );
+
+              return canOpenClientDetail ? (
+                <Link
+                  className="ops-data-table-row ops-data-table-link"
+                  key={organization.clientOrganizationId}
+                  href={`/agency/clients/${organization.clientOrganizationId}?workspaceId=${selected.workspaceId}`}
+                >
+                  {rowContent}
+                </Link>
+              ) : (
+                <div
+                  className="ops-data-table-row ops-data-table-static"
+                  key={organization.clientOrganizationId}
+                >
+                  {rowContent}
+                </div>
+              );
+            })
+          )}
+        </div>
       </section>
     </main>
   );

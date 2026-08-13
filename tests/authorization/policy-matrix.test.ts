@@ -17,6 +17,7 @@ import {
 } from "../../src/modules/authorization/policies";
 import {
   toAgencyContextProjection,
+  toAgencyNavigationProjection,
   toClientContextProjection,
 } from "../../src/modules/authorization/projections";
 import { createAuthorizationLogContext } from "../../src/modules/authorization/logging";
@@ -124,6 +125,65 @@ describe("M07 authorization policy matrix", () => {
         row.createProject,
       );
     }
+  });
+
+  it("projects Agency navigation from the same capability policies used by routes", () => {
+    const ownerNavigation = toAgencyNavigationProjection(
+      authorizationActors.owner,
+      {
+        workspaceId: workspaceA,
+        workspaceName: "StudioFlow Local",
+        role: "AGENCY_OWNER",
+      },
+    );
+    expect(ownerNavigation).toEqual({
+      canViewDelivery: true,
+      canViewProjects: true,
+      canViewClients: true,
+      canManageMembers: true,
+      defaultPath: "/agency",
+    });
+
+    const managerNavigation = toAgencyNavigationProjection(
+      authorizationActors.deliveryManager,
+      {
+        workspaceId: workspaceA,
+        workspaceName: "StudioFlow Local",
+        role: "DELIVERY_MANAGER",
+      },
+    );
+    expect(managerNavigation).toEqual({
+      canViewDelivery: true,
+      canViewProjects: true,
+      canViewClients: true,
+      canManageMembers: false,
+      defaultPath: "/agency",
+    });
+
+    const memberNavigation = toAgencyNavigationProjection(
+      authorizationActors.agencyMember,
+      {
+        workspaceId: workspaceA,
+        workspaceName: "StudioFlow Local",
+        role: "AGENCY_MEMBER",
+      },
+    );
+    expect(memberNavigation).toEqual({
+      canViewDelivery: false,
+      canViewProjects: true,
+      canViewClients: false,
+      canManageMembers: false,
+      defaultPath: "/agency/projects",
+    });
+
+    expect(
+      canViewAgencyDelivery(authorizationActors.agencyMember, workspaceA)
+        .allowed,
+    ).toBe(false);
+    expect(
+      canViewClientOrganizations(authorizationActors.agencyMember, workspaceA)
+        .allowed,
+    ).toBe(false);
   });
 
   it("allows the Agency shell to all active agency roles but not clients or removed users", () => {

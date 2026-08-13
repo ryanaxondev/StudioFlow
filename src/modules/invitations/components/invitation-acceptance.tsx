@@ -199,7 +199,20 @@ export function InvitationAcceptance({ token }: Readonly<{ token: string }>) {
   }
 
   if (presentation.status === "loading") {
-    return <p className="auth-method">Checking invitation…</p>;
+    return (
+      <div
+        className="invitation-loading-state"
+        role="status"
+        aria-live="polite"
+        aria-busy="true"
+      >
+        <span className="invitation-loading-indicator" aria-hidden="true" />
+        <span>
+          <strong>Checking invitation</strong>
+          <span>Verifying the access scope and invited identity.</span>
+        </span>
+      </div>
+    );
   }
 
   if (presentation.status === "invalid") {

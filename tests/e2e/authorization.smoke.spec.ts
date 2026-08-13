@@ -4,13 +4,13 @@ test("protected product shells require authentication", async ({ page }) => {
   await page.goto("/agency");
   await expect(page).toHaveURL(/\/access\?returnTo=%2Fagency$/);
   await expect(
-    page.getByRole("heading", { level: 1, name: "Access Entry" }),
+    page.getByRole("heading", { level: 1, name: "Sign in to StudioFlow" }),
   ).toBeVisible();
 
   await page.goto("/portal");
   await expect(page).toHaveURL(/\/access\?returnTo=%2Fportal$/);
   await expect(
-    page.getByRole("heading", { level: 1, name: "Access Entry" }),
+    page.getByRole("heading", { level: 1, name: "Sign in to StudioFlow" }),
   ).toBeVisible();
 });
 

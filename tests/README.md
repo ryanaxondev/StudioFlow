@@ -43,3 +43,7 @@ The database suite verifies the invitation-only identity bridge for existing and
 ## M07 authorization coverage
 
 `tests/authorization/policy-matrix.test.ts` exercises the Workspace/Project policy interface for Agency Owner, Delivery Manager, Agency Member, Client, cross-Workspace, and removed-user scenarios. `tests/database/authorization-boundary.integration.test.ts` proves ActorContext is derived from authoritative active membership, cross-tenant requests fail closed, insufficient known-role access resolves to Access Denied semantics, stale ActorContext cannot authorize a write after revocation, and disabled identities lose membership authority. Unauthenticated behavior remains the authentication layer and is exercised by the existing access/browser boundary rather than by fabricating an ActorContext.
+
+## M08 Visual Foundation
+
+M08 adds token contrast checks, product-shell integration tests, Radix focus checks, responsive/reduced-motion assertions, and a lightweight browser visual smoke. These tests verify the shared visual and navigation foundation without introducing Project data or a component-catalogue route.

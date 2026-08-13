@@ -1353,6 +1353,20 @@ Shells are real, responsive, and accessible before domain Screens populate them.
 - No P0 visual polish
 - No broad component catalogue beyond approved Screen needs
 
+### M08 Approved Handoff
+
+M08 completed the owner-approved **Obsidian Operations** visual foundation and product shells. M09 and later domain Milestones extend these shells; they do not rebuild the visual architecture as part of ordinary domain work.
+
+Durable handoff rules:
+
+- Agency desktop keeps the Product Rail → Context Navigation → Workspace silhouette.
+- Agency mobile keeps the top-context / scrolling-content / bottom-navigation shell.
+- Agency navigation and command actions remain capability-projected from server authorization. An unavailable destination is absent from navigation but remains fail-closed by direct URL.
+- Agency Member lands on Projects and does not gain Delivery Overview access merely because Project persistence now exists. Product Specification and Screen Inventory continue to govern that boundary.
+- Client Portal keeps its calmer Obsidian shell and top navigation on desktop and mobile.
+- Existing M08 empty collection anatomy is replaced with real read-model data incrementally; domain Milestones should inject truth rather than reintroduce placeholder copy or parallel shell variants.
+- The M08 Access, Invitation, Recovery, Access Denied, Not Found, Account, and shell accessibility/responsive contracts remain regression gates.
+
 ---
 
 ## 20. M09 — Workspace, Client, Project, and Activity Core
@@ -1408,8 +1422,8 @@ deleteEligibleDraftProject
 
 Implement Screens:
 
-- AG-01 Delivery Overview, first real Project collection and lifecycle summary
-- AG-02 Projects, Draft-capable
+- AG-01 Delivery Overview, first real Project collection and lifecycle summary for Agency Owner and Delivery Manager
+- AG-02 Projects, Draft-capable and assignment-aware for Agency Owner, Delivery Manager, and Agency Member
 - AG-08 Project Setup, first step
 - AG-26 Project Settings — General
 - AG-27 Project Settings — People & Access
@@ -1435,7 +1449,7 @@ It is not yet the public per-visitor Demo.
 - Create Draft
 - Owner access
 - Assigned Delivery Manager access
-- Agency Member access
+- Assigned Agency Member Project access while Delivery Overview remains denied
 - Client has no Draft access
 - Required-role reassignment
 - Cross-tenant membership
@@ -1456,7 +1470,7 @@ A Draft Project can be created, resumed, authorized, audited, seeded, and safely
 
 - No Project publication
 - No Milestones
-- No Client Project Screen
+- No Client Project detail/domain population; the existing M08 `/portal/projects` collection shell remains presentation-only in M09
 - No Project Health
 - No public Demo clone
 

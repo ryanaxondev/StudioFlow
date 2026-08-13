@@ -1,5 +1,4 @@
 import { headers } from "next/headers";
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { canViewAgencyWorkspace } from "../../../modules/authorization/policies";
@@ -19,9 +18,7 @@ function firstValue(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
 }
 
-export default async function AgencyProjectsAuthorizationPlaceholder({
-  searchParams,
-}: PageProps) {
+export default async function AgencyProjectsPage({ searchParams }: PageProps) {
   const parameters = await searchParams;
   const requestedWorkspaceId = firstValue(parameters.workspaceId);
   const readonlyHeaders = await headers();
@@ -30,14 +27,16 @@ export default async function AgencyProjectsAuthorizationPlaceholder({
   const database = getApplicationDatabase();
   const actor = await getCurrentActorContext(requestHeaders, database);
 
-  if (!actor) {
+  if (!actor)
     redirect(`/access?returnTo=${encodeURIComponent("/agency/projects")}`);
-  }
 
   const result = await resolveAuthorizedAgencyWorkspaceSelection(
     database,
     actor,
-    { requestedWorkspaceId, policy: canViewAgencyWorkspace },
+    {
+      requestedWorkspaceId,
+      policy: canViewAgencyWorkspace,
+    },
   );
   if (result.status === "not-found") notFound();
   if (result.status === "denied") {
@@ -46,27 +45,57 @@ export default async function AgencyProjectsAuthorizationPlaceholder({
   }
 
   const { selected } = result.selection;
+
   return (
-    <main className="management-shell">
+    <main className="ops-workspace ops-collection-page">
       <SessionRefresh
         returnTo={`/agency/projects?workspaceId=${encodeURIComponent(selected.workspaceId)}`}
       />
-      <header className="management-header">
+
+      <header className="ops-page-header ops-collection-header">
         <div>
-          <p className="auth-brand">StudioFlow</p>
-          <h1>Assigned Projects</h1>
-          <p>{selected.workspaceName}</p>
+          <p className="ops-page-kicker">Portfolio</p>
+          <h1>Projects</h1>
+          <p>Every active client engagement, organized for delivery.</p>
         </div>
-        <nav aria-label="Workspace utilities">
-          <Link href="/account">Account</Link>
-        </nav>
       </header>
-      <section className="management-panel" aria-labelledby="projects-state">
-        <h2 id="projects-state">Project access foundation ready</h2>
-        <p className="management-muted">
-          Project records and assignments begin in M09. This route exists only
-          to preserve the approved Agency Member landing boundary.
-        </p>
+
+      <section
+        className="ops-collection-section"
+        aria-labelledby="projects-heading"
+      >
+        <div className="ops-section-heading ops-collection-heading">
+          <div>
+            <p className="ops-section-label">Collection</p>
+            <h2 id="projects-heading">All projects</h2>
+          </div>
+          <span className="ops-section-meta">0 projects</span>
+        </div>
+
+        <div
+          className="ops-data-table ops-projects-table"
+          aria-label="Projects"
+        >
+          <div className="ops-data-table-row ops-data-table-header">
+            <span>Project</span>
+            <span>Client</span>
+            <span>Stage</span>
+            <span>Owner</span>
+            <span>Health</span>
+          </div>
+          <div className="ops-data-table-empty">
+            <div className="ops-empty-symbol" aria-hidden="true">
+              +
+            </div>
+            <div>
+              <strong>No projects yet</strong>
+              <span>
+                New delivery work will appear here as soon as the first project
+                is created.
+              </span>
+            </div>
+          </div>
+        </div>
       </section>
     </main>
   );

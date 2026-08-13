@@ -44,21 +44,22 @@ export function ClientOrganizationCreateForm({
   }
 
   return (
-    <form className="management-form management-inline-form" onSubmit={submit}>
+    <form className="ops-client-create-form" onSubmit={submit}>
       <label>
         <span>Organization name</span>
         <input
           type="text"
           name="name"
+          placeholder="Acme Studio"
           required
           maxLength={160}
           disabled={pending}
         />
       </label>
-      <button className="management-primary" type="submit" disabled={pending}>
-        Create Client Organization
+      <button className="ops-primary-action" type="submit" disabled={pending}>
+        Create client
       </button>
-      <p className="management-status" aria-live="polite">
+      <p className="ops-management-status" aria-live="polite">
         {status}
       </p>
     </form>

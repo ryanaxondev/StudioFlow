@@ -1,7 +1,9 @@
+import { ArrowUpRightIcon } from "@phosphor-icons/react/ssr";
 import { headers } from "next/headers";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { StudioFlowMark } from "../../components/brand/studioflow-mark";
 import {
   toAgencyContextProjection,
   toClientContextProjection,
@@ -49,81 +51,168 @@ export default async function AccountPage() {
   const landing = resolveRoleBasedLanding(actor);
 
   return (
-    <main className="auth-shell">
+    <main className="account-experience">
       <SessionRefresh />
-      <section
-        className="auth-card auth-card-wide"
-        aria-labelledby="account-heading"
-      >
-        <p className="auth-brand">StudioFlow</p>
-        <h1 id="account-heading">Account and Product Context</h1>
-
-        <dl className="auth-identity-list">
-          <div>
-            <dt>Name</dt>
-            <dd>{session.user.name}</dd>
-          </div>
-          <div>
-            <dt>Email</dt>
-            <dd>{session.user.email}</dd>
-          </div>
-        </dl>
-
-        <section
-          className="account-context-section"
-          aria-labelledby="workspace-context-heading"
-        >
-          <h2 id="workspace-context-heading">Workspace contexts</h2>
-          {workspaceContexts.length === 0 ? (
-            <p className="management-muted">
-              No active Agency Workspace membership.
-            </p>
-          ) : (
-            <div className="account-context-list">
-              {workspaceContexts.map((membership) => (
-                <article key={membership.workspaceId}>
-                  <strong>{membership.workspaceName}</strong>
-                  <span>{workspaceRoleLabel(membership.role)}</span>
-                </article>
-              ))}
-            </div>
-          )}
-        </section>
-
-        <section
-          className="account-context-section"
-          aria-labelledby="client-context-heading"
-        >
-          <h2 id="client-context-heading">Client contexts</h2>
-          {clientContexts.length === 0 ? (
-            <p className="management-muted">
-              No active Client Organization membership.
-            </p>
-          ) : (
-            <div className="account-context-list">
-              {clientContexts.map((membership) => (
-                <article key={membership.clientOrganizationId}>
-                  <strong>{membership.clientOrganizationName}</strong>
-                  <span>{membership.workspaceName}</span>
-                </article>
-              ))}
-            </div>
-          )}
-        </section>
-
-        <div className="auth-actions">
+      <div className="account-frame">
+        <header className="account-topbar">
+          <Link className="account-brand" href="/" aria-label="StudioFlow home">
+            <StudioFlowMark />
+            <strong>StudioFlow</strong>
+          </Link>
           {landing.surface === "ACCOUNT" ? (
-            <Link className="auth-text-link" href="/">
-              Return to product
+            <Link className="account-back-link" href="/">
+              <span>Return to product</span>
+              <ArrowUpRightIcon aria-hidden="true" weight="bold" />
             </Link>
           ) : (
-            <Link className="auth-primary-link" href={landing.href}>
-              {landing.label}
+            <Link className="account-back-link" href={landing.href}>
+              <span>{landing.label}</span>
+              <ArrowUpRightIcon aria-hidden="true" weight="bold" />
             </Link>
           )}
-          <SignOutButton />
+        </header>
+
+        <div className="account-layout">
+          <aside className="account-sidebar">
+            <p className="ops-page-kicker">Settings</p>
+            <h1>Account</h1>
+            <p>Identity, workspace context, and secure session access.</p>
+            <nav aria-label="Account sections">
+              <a href="#profile">Profile</a>
+              <a href="#workspaces">Workspaces</a>
+              <a href="#clients">Client access</a>
+              <a href="#session">Session</a>
+            </nav>
+          </aside>
+
+          <div className="account-content">
+            <section
+              className="account-section"
+              id="profile"
+              aria-labelledby="account-profile-heading"
+            >
+              <div className="account-section-heading">
+                <div>
+                  <p className="ops-section-label">Profile</p>
+                  <h2 id="account-profile-heading">Identity</h2>
+                </div>
+              </div>
+              <dl className="account-detail-list">
+                <div>
+                  <dt>Name</dt>
+                  <dd>{session.user.name}</dd>
+                </div>
+                <div>
+                  <dt>Email</dt>
+                  <dd>{session.user.email}</dd>
+                </div>
+              </dl>
+            </section>
+
+            <section
+              className="account-section"
+              id="workspaces"
+              aria-labelledby="workspace-context-heading"
+            >
+              <div className="account-section-heading">
+                <div>
+                  <p className="ops-section-label">Workspaces</p>
+                  <h2 id="workspace-context-heading">Agency context</h2>
+                </div>
+                <span>{workspaceContexts.length} active</span>
+              </div>
+              {workspaceContexts.length === 0 ? (
+                <div className="account-empty-row">
+                  No active Agency Workspace membership.
+                </div>
+              ) : (
+                <div className="account-context-list-obsidian">
+                  {workspaceContexts.map((membership) => (
+                    <article key={membership.workspaceId}>
+                      <span className="account-context-mark" aria-hidden="true">
+                        {membership.workspaceName.slice(0, 1).toUpperCase()}
+                      </span>
+                      <div>
+                        <strong>{membership.workspaceName}</strong>
+                        <span>{workspaceRoleLabel(membership.role)}</span>
+                      </div>
+                      <span className="ops-status-chip" data-tone="success">
+                        Active
+                      </span>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            <section
+              className="account-section"
+              id="clients"
+              aria-labelledby="client-context-heading"
+            >
+              <div className="account-section-heading">
+                <div>
+                  <p className="ops-section-label">Client access</p>
+                  <h2 id="client-context-heading">Client organizations</h2>
+                </div>
+                <span>{clientContexts.length} active</span>
+              </div>
+              {clientContexts.length === 0 ? (
+                <div className="account-empty-row">
+                  No active Client Organization membership.
+                </div>
+              ) : (
+                <div className="account-context-list-obsidian">
+                  {clientContexts.map((membership) => (
+                    <article key={membership.clientOrganizationId}>
+                      <span
+                        className="account-context-mark account-context-mark-client"
+                        aria-hidden="true"
+                      >
+                        {membership.clientOrganizationName
+                          .slice(0, 1)
+                          .toUpperCase()}
+                      </span>
+                      <div>
+                        <strong>{membership.clientOrganizationName}</strong>
+                        <span>{membership.workspaceName}</span>
+                      </div>
+                      <span className="ops-status-chip" data-tone="success">
+                        Active
+                      </span>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            <section
+              className="account-section account-session-section"
+              id="session"
+              aria-labelledby="session-heading"
+            >
+              <div className="account-section-heading">
+                <div>
+                  <p className="ops-section-label">Access</p>
+                  <h2 id="session-heading">Session</h2>
+                </div>
+              </div>
+              <div className="account-session-row">
+                <div>
+                  <strong>Secure workspace session</strong>
+                  <span>
+                    Signing out ends this StudioFlow session on the current
+                    device.
+                  </span>
+                </div>
+                <div className="account-signout">
+                  <SignOutButton />
+                </div>
+              </div>
+            </section>
+          </div>
         </div>
-      </section>
+      </div>
     </main>
   );
 }

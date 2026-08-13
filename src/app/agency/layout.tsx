@@ -1,11 +1,14 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { AgencyShell } from "../../components/shell/agency-shell";
 import { canViewAgencyWorkspace } from "../../modules/authorization/policies";
+import { toAgencyNavigationProjection } from "../../modules/authorization/projections";
 import {
   getCurrentActorContext,
   logAuthorizationDenied,
 } from "../../modules/authorization/server/authorization";
+import { listActiveMembershipContextDetails } from "../../modules/memberships/queries";
 import { getApplicationDatabase } from "../../server/database";
 
 export default async function ProtectedAgencyLayout({
@@ -14,10 +17,8 @@ export default async function ProtectedAgencyLayout({
   const readonlyHeaders = await headers();
   const requestHeaders = new Headers();
   readonlyHeaders.forEach((value, key) => requestHeaders.append(key, value));
-  const actor = await getCurrentActorContext(
-    requestHeaders,
-    getApplicationDatabase(),
-  );
+  const database = getApplicationDatabase();
+  const actor = await getCurrentActorContext(requestHeaders, database);
 
   if (!actor) {
     redirect(`/access?returnTo=${encodeURIComponent("/agency")}`);
@@ -33,5 +34,16 @@ export default async function ProtectedAgencyLayout({
     redirect("/access-denied");
   }
 
-  return children;
+  const contexts = await listActiveMembershipContextDetails(
+    database,
+    actor.userId,
+  );
+  const workspaces = contexts.workspaceMemberships.map((workspace) => ({
+    workspaceId: workspace.workspaceId,
+    workspaceName: workspace.workspaceName,
+    role: workspace.role,
+    ...toAgencyNavigationProjection(actor, workspace),
+  }));
+
+  return <AgencyShell workspaces={workspaces}>{children}</AgencyShell>;
 }

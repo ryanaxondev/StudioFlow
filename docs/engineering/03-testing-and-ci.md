@@ -123,3 +123,15 @@ M06 adds browser smoke and accessibility coverage for the invitation acceptance 
 ## M07 authorization gate
 
 The static CI job runs `pnpm test:authorization` after unit tests. This keeps the role/capability matrix fast and database-independent. PostgreSQL authorization-boundary tests run through `pnpm test:database` and prove that policy inputs are refreshed from authoritative membership for protected writes, including removed and cross-Workspace actors.
+
+## M08 visual-shell and accessibility regression
+
+M08 adds cumulative shell-level protection without turning browser tests into pixel-snapshot authority:
+
+- Visual smoke protects responsive composition for shared access/recovery surfaces and the Access single-viewport desktop contract.
+- Unit/integration regressions protect the Agency mobile three-row shell, Client Projects mobile-native collection anatomy, capability-aware navigation projection, and server/client icon boundaries.
+- Accessibility browser tests continue to scan semantic and interactive content with Axe. Oversized `403`/`404` watermark numerals are decorative, `aria-hidden`, intentionally low-contrast visual texture; only that decorative selector is narrowly excluded from Axe color-contrast analysis. The color-contrast rule is never disabled globally.
+- Product-facing loading states that may wait on local cold compilation still expose accessible status/live-region behavior.
+
+On development machines with a slow filesystem, Turbopack cold compilation may dominate first-request time. It is acceptable to start `pnpm dev` manually and warm the target routes before Playwright. A cold-compile timeout is not reclassified as a product failure unless the warmed route or application-code execution still fails the behavior under test.
+

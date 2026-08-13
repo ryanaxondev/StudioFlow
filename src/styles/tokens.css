@@ -1,0 +1,171 @@
+:root {
+  color-scheme: light;
+
+  --neutral-0: #ffffff;
+  --neutral-25: #f9fafc;
+  --neutral-50: #f3f5f9;
+  --neutral-100: #eceff5;
+  --neutral-150: #e3e7ef;
+  --neutral-200: #d7dde7;
+  --neutral-300: #bec7d5;
+  --neutral-400: #8d98aa;
+  --neutral-500: #697487;
+  --neutral-600: #4f596a;
+  --neutral-700: #374151;
+  --neutral-800: #242b3a;
+  --neutral-900: #171c2a;
+  --neutral-950: #0e1320;
+
+  --studio-50: #f1f1ff;
+  --studio-100: #e2e3ff;
+  --studio-200: #c7caff;
+  --studio-400: #8588ff;
+  --studio-500: #6768ee;
+  --studio-600: #4f46c9;
+  --studio-700: #4038ad;
+  --studio-800: #322c88;
+  --studio-900: #24205f;
+
+  --agency-accent-50: #edf8f4;
+  --agency-accent-100: #d5efe7;
+  --agency-accent-300: #82c9b6;
+  --agency-accent-500: #2f8c74;
+  --agency-accent-600: #176a5b;
+  --agency-accent-700: #125548;
+  --agency-accent-800: #0d4339;
+
+  --shell-ink: #11172a;
+  --shell-ink-raised: #18203a;
+  --shell-ink-border: #28324e;
+  --shell-ink-text: #f7f8ff;
+  --shell-ink-muted: #aeb7cb;
+  --brand-glow: rgb(79 70 201 / 18%);
+  --accent-glow: rgb(23 106 91 / 14%);
+
+  --info-50: #eff6ff;
+  --info-200: #bfdbfe;
+  --info-600: #2563eb;
+  --info-700: #1d4ed8;
+  --success-50: #ecfdf3;
+  --success-200: #abefc6;
+  --success-600: #16803a;
+  --success-700: #087a33;
+  --warning-50: #fff7e8;
+  --warning-200: #fedf89;
+  --warning-600: #b54708;
+  --warning-700: #93370d;
+  --danger-50: #fef3f2;
+  --danger-200: #fecdca;
+  --danger-600: #d92d20;
+  --danger-700: #b42318;
+  --revision-50: #f4f3ff;
+  --revision-200: #d9d6fe;
+  --revision-600: #7a5af8;
+  --revision-700: #6941c6;
+
+  --text-primary: var(--neutral-900);
+  --text-secondary: var(--neutral-600);
+  --text-muted: var(--neutral-500);
+  --text-disabled: var(--neutral-400);
+  --text-inverse: var(--neutral-0);
+  --text-link: var(--studio-700);
+  --text-danger: var(--danger-700);
+  --border-subtle: var(--neutral-150);
+  --border-default: var(--neutral-200);
+  --border-strong: var(--neutral-300);
+  --border-focus: var(--studio-500);
+  --border-danger: var(--danger-600);
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+
+  --radius-sm: 0.375rem;
+  --radius-md: 0.625rem;
+  --radius-lg: 0.875rem;
+  --radius-xl: 1.125rem;
+  --radius-full: 999px;
+
+  --shadow-1: 0 1px 2px rgb(14 19 32 / 7%);
+  --shadow-2: 0 10px 28px rgb(14 19 32 / 12%);
+  --shadow-3: 0 22px 56px rgb(14 19 32 / 20%);
+
+  --motion-fast: 120ms;
+  --motion-state: 160ms;
+  --motion-sheet: 220ms;
+  --motion-dialog: 190ms;
+  --ease-enter: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+
+  --type-display-lg-size: 2.5rem;
+  --type-display-lg-line: 3rem;
+  --type-heading-xl-size: 2rem;
+  --type-heading-xl-line: 2.5rem;
+  --type-heading-lg-size: 1.5rem;
+  --type-heading-lg-line: 2rem;
+  --type-heading-md-size: 1.25rem;
+  --type-heading-md-line: 1.75rem;
+  --type-heading-sm-size: 1.125rem;
+  --type-heading-sm-line: 1.625rem;
+  --type-body-lg-size: 1rem;
+  --type-body-lg-line: 1.5rem;
+  --type-body-md-size: 0.875rem;
+  --type-body-md-line: 1.25rem;
+  --type-body-sm-size: 0.8125rem;
+  --type-body-sm-line: 1.125rem;
+  --type-label-md-size: 0.875rem;
+  --type-label-md-line: 1.25rem;
+  --type-label-sm-size: 0.75rem;
+  --type-label-sm-line: 1rem;
+
+  --agency-sidebar-width: 14.5rem;
+  --client-header-height: 4.25rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 0.01ms;
+    --motion-state: 0.01ms;
+    --motion-sheet: 0.01ms;
+    --motion-dialog: 0.01ms;
+  }
+}
+
+/* M08 visual foundation — StudioFlow Obsidian Operations. */
+:root {
+  --ops-black: #080a0e;
+  --ops-rail: #080a0e;
+  --ops-sidebar: #0d1016;
+  --ops-canvas: #0f1219;
+  --ops-surface: #131720;
+  --ops-raised: #171c26;
+  --ops-interactive: #1b202c;
+  --ops-hover: #202632;
+  --ops-border: rgb(255 255 255 / 5.5%);
+  --ops-border-strong: rgb(255 255 255 / 9%);
+  --ops-text: #f4f6fa;
+  --ops-text-secondary: #9aa3b2;
+  --ops-text-tertiary: #7c8594;
+  --ops-violet: #6c5ce7;
+  --ops-violet-hover: #786af0;
+  --ops-violet-muted: rgb(108 92 231 / 14%);
+  --ops-emerald: #3fb98e;
+  --ops-amber: #e5a93d;
+  --ops-risk: #e46e68;
+  --ops-blue: #5e9df5;
+  --ops-rail-width: 3.5rem;
+  --ops-sidebar-width: 13.5rem;
+  --ops-topbar-height: 3rem;
+  --ops-mobile-topbar-height: 3.25rem;
+  --ops-mobile-nav-height: 4.25rem;
+  --ops-icon-sm: 1rem;
+  --ops-icon-mobile: 1.25rem;
+}
