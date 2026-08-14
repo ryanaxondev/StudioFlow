@@ -38,6 +38,7 @@ The reset helper truncates public-schema tables with `RESTART IDENTITY CASCADE`.
 - Factories return deterministic valid defaults and accept explicit overrides.
 - Factories do not perform hidden database or network I/O.
 - Application time comes through the `Clock` interface; tests use a fixed Clock.
+- Operational idempotency retention is anchored to PostgreSQL transaction time; a fixed Product Clock must not control reservation expiry.
 - M05 authentication integration tests exercise the real Better Auth adapter against disposable PostgreSQL; the lightweight authentication stub remains available for unrelated module tests that do not own authentication behavior.
 - Worker processors are exercised through the processor harness without starting the long-running Worker process.
 - M07 keeps the pure authorization policy matrix in the static gate; authoritative tenant/revocation behavior remains in the PostgreSQL database gate.

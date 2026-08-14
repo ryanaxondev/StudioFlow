@@ -4,11 +4,16 @@ import {
   canCreateClientOrganization,
   canCreateProject,
   canDeleteDraftProject,
+  canEditMilestoneDraft,
   canEditProjectSettings,
   canEnterClientPortal,
   canManageAgencyMembers,
   canManageProjectMembers,
   canManageClientMembers,
+  canManageMilestoneLifecycle,
+  canMoveProjectToActive,
+  canPublishMilestone,
+  canPublishProject,
   canManageWorkspace,
   canViewAgencyDelivery,
   canViewAgencyWorkspace,
@@ -31,7 +36,7 @@ import {
 
 const { workspaceA, clientA } = authorizationFixture;
 
-describe("authorization policy matrix through M09", () => {
+describe("authorization policy matrix through M10", () => {
   it("enforces Workspace capabilities by authoritative role", () => {
     const matrix = [
       {
@@ -415,5 +420,98 @@ describe("authorization policy matrix through M09", () => {
       authorizationActors.agencyMember.userId,
     );
     expect(JSON.stringify(context)).not.toContain(workspaceA);
+  });
+  it("separates Milestone drafting from Project publication and lifecycle authority", () => {
+    const ownerDraft = {
+      workspaceId: workspaceA,
+      lifecycle: "DRAFT" as const,
+      actorAssignment: null,
+    };
+    const managerDraft = {
+      workspaceId: workspaceA,
+      lifecycle: "DRAFT" as const,
+      actorAssignment: {
+        kind: "AGENCY" as const,
+        role: "DELIVERY_MANAGER" as const,
+      },
+    };
+    const memberDraft = {
+      workspaceId: workspaceA,
+      lifecycle: "DRAFT" as const,
+      actorAssignment: {
+        kind: "AGENCY" as const,
+        role: "AGENCY_MEMBER" as const,
+      },
+    };
+
+    expect(
+      canEditMilestoneDraft(authorizationActors.owner, ownerDraft).allowed,
+    ).toBe(true);
+    expect(
+      canPublishProject(authorizationActors.owner, ownerDraft).allowed,
+    ).toBe(true);
+    expect(
+      canEditMilestoneDraft(authorizationActors.deliveryManager, managerDraft)
+        .allowed,
+    ).toBe(true);
+    expect(
+      canPublishProject(authorizationActors.deliveryManager, managerDraft)
+        .allowed,
+    ).toBe(true);
+    expect(
+      canEditMilestoneDraft(authorizationActors.agencyMember, memberDraft)
+        .allowed,
+    ).toBe(true);
+    expect(
+      canPublishProject(authorizationActors.agencyMember, memberDraft).allowed,
+    ).toBe(false);
+
+    const viewOnlyDeliveryManagerDraft = {
+      ...memberDraft,
+      actorAssignment: {
+        kind: "AGENCY" as const,
+        role: "AGENCY_MEMBER" as const,
+      },
+    };
+    expect(
+      canEditMilestoneDraft(
+        authorizationActors.deliveryManager,
+        viewOnlyDeliveryManagerDraft,
+      ).allowed,
+    ).toBe(true);
+    expect(
+      canPublishProject(
+        authorizationActors.deliveryManager,
+        viewOnlyDeliveryManagerDraft,
+      ).allowed,
+    ).toBe(false);
+
+    const activeManager = { ...managerDraft, lifecycle: "ACTIVE" as const };
+    expect(
+      canPublishMilestone(authorizationActors.deliveryManager, activeManager)
+        .allowed,
+    ).toBe(true);
+    expect(
+      canManageMilestoneLifecycle(
+        authorizationActors.deliveryManager,
+        activeManager,
+      ).allowed,
+    ).toBe(true);
+    expect(
+      canPublishMilestone(authorizationActors.agencyMember, {
+        ...memberDraft,
+        lifecycle: "ACTIVE" as const,
+      }).allowed,
+    ).toBe(false);
+    expect(
+      canMoveProjectToActive(authorizationActors.deliveryManager, {
+        ...managerDraft,
+        lifecycle: "ONBOARDING" as const,
+      }).allowed,
+    ).toBe(true);
+    expect(
+      canMoveProjectToActive(authorizationActors.deliveryManager, activeManager)
+        .allowed,
+    ).toBe(false);
   });
 });

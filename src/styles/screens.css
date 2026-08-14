@@ -1084,6 +1084,7 @@
 }
 
 .ops-primary-action,
+.ops-secondary-action,
 .ops-quiet-action,
 .ops-danger-quiet-action {
   min-height: 2.125rem;
@@ -1119,10 +1120,23 @@
 }
 
 .ops-primary-action:disabled,
+.ops-secondary-action:disabled,
 .ops-quiet-action:disabled,
 .ops-danger-quiet-action:disabled {
   cursor: not-allowed;
   opacity: 0.5;
+}
+
+.ops-secondary-action,
+.ops-quiet-action,
+.ops-danger-quiet-action {
+  border: 1px solid var(--ops-border-strong);
+  background: var(--ops-raised);
+  color: var(--ops-text-secondary);
+}
+
+.ops-secondary-action {
+  min-height: 2.125rem;
 }
 
 .ops-quiet-action,
@@ -1133,6 +1147,7 @@
   color: var(--ops-text-secondary);
 }
 
+.ops-secondary-action:hover:not(:disabled),
 .ops-quiet-action:hover:not(:disabled) {
   background: var(--ops-interactive);
   color: var(--ops-text);
@@ -3860,5 +3875,1136 @@
   .ops-project-danger-confirmation {
     width: 100%;
     justify-items: start;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   M10 — Project Setup and Milestones / Agency Delivery Plan
+   -------------------------------------------------------------------------- */
+
+@media (min-width: 64rem) {
+  .ops-delivery-page .delivery-brief-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.ops-section-intro {
+  margin: 0.75rem 0 0;
+  color: var(--ops-text-tertiary);
+  font-size: 0.6875rem;
+  line-height: 1.15rem;
+}
+
+.ops-project-overview-page,
+.ops-delivery-plan-page,
+.ops-milestone-detail-page {
+  width: 100%;
+}
+
+.ops-project-overview-header,
+.ops-delivery-plan-header,
+.ops-milestone-detail-header {
+  align-items: center;
+}
+
+.ops-project-overview-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.ops-project-overview-card {
+  min-height: 9rem;
+  display: grid;
+  align-content: start;
+  gap: 0.45rem;
+  border: 1px solid var(--ops-border);
+  border-radius: 0.5rem;
+  background: var(--ops-surface);
+  padding: 1rem;
+}
+
+.ops-project-overview-card-primary {
+  min-height: 11rem;
+}
+
+.ops-project-overview-card h2,
+.ops-project-overview-card strong {
+  margin: 0;
+  color: var(--ops-text);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.ops-project-overview-card-primary h2 {
+  font-size: 1rem;
+}
+
+.ops-project-overview-card p:not(.ops-section-label),
+.ops-project-overview-card > span {
+  margin: 0;
+  color: var(--ops-text-tertiary);
+  font-size: 0.6875rem;
+  line-height: 1.15rem;
+}
+
+.ops-project-overview-card .ops-primary-action,
+.ops-project-overview-card .ops-secondary-action {
+  width: fit-content;
+  margin-top: auto;
+}
+
+.ops-project-metric {
+  font-size: 1.35rem !important;
+  letter-spacing: -0.035em;
+}
+
+.ops-project-overview-columns,
+.ops-milestone-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.ops-project-overview-columns > .ops-project-settings-card,
+.ops-milestone-detail-grid > .ops-project-settings-card {
+  min-width: 0;
+}
+
+.ops-project-overview-people {
+  margin-top: 0.75rem;
+}
+
+.ops-project-activity-list {
+  margin-top: 0.75rem;
+  display: grid;
+  border-top: 1px solid var(--ops-border);
+}
+
+.ops-project-activity-list > div {
+  display: grid;
+  grid-template-columns: 0.55rem minmax(0, 1fr);
+  gap: 0.65rem;
+  padding: 0.7rem 0;
+  border-bottom: 1px solid var(--ops-border);
+}
+
+.ops-project-activity-mark {
+  width: 0.45rem;
+  height: 0.45rem;
+  margin-top: 0.25rem;
+  border-radius: 999px;
+  background: var(--ops-violet);
+  box-shadow: 0 0 0 3px rgb(108 92 231 / 10%);
+}
+
+.ops-project-activity-list > div > div {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.ops-project-activity-list strong,
+.ops-project-activity-list span,
+.ops-project-activity-list small {
+  font-size: 0.625rem;
+}
+
+.ops-project-activity-list strong {
+  color: var(--ops-text-secondary);
+  font-weight: 580;
+}
+
+.ops-project-activity-list span,
+.ops-project-activity-list small,
+.ops-project-empty-copy {
+  color: var(--ops-text-tertiary);
+}
+
+.ops-onboarding-transition-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+}
+
+.ops-onboarding-transition-card > div:first-child {
+  max-width: 42rem;
+}
+
+.ops-onboarding-transition-card h2,
+.ops-client-preview-surface h3,
+.ops-milestone-context-card h2,
+.ops-milestone-requirements-card h2 {
+  margin: 0.2rem 0 0;
+  color: var(--ops-text);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.ops-onboarding-transition-card p:last-child,
+.ops-milestone-requirements-card > p {
+  color: var(--ops-text-tertiary);
+  font-size: 0.6875rem;
+  line-height: 1.15rem;
+}
+
+.ops-project-stage-action {
+  display: grid;
+  justify-items: end;
+  gap: 0.25rem;
+}
+
+.ops-delivery-plan-tabs {
+  margin-top: 1rem;
+  display: flex;
+  gap: 0.25rem;
+  border-bottom: 1px solid var(--ops-border);
+}
+
+.ops-delivery-plan-tabs span {
+  min-height: 2.25rem;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 0.65rem;
+  border-bottom: 1px solid transparent;
+  color: var(--ops-text-tertiary);
+  font-size: 0.6875rem;
+  font-weight: 560;
+}
+
+.ops-delivery-plan-tabs span[aria-current="page"] {
+  border-bottom-color: var(--ops-violet);
+  color: var(--ops-text);
+}
+
+.ops-delivery-plan-tabs span[aria-disabled="true"] {
+  opacity: 0.45;
+}
+
+.ops-milestone-plan-stack,
+.ops-milestone-detail-controls {
+  margin-top: 1rem;
+  display: grid;
+  gap: 1rem;
+}
+
+.ops-milestone-sequence {
+  overflow: hidden;
+  border: 1px solid var(--ops-border);
+  border-radius: 0.5rem;
+  background: var(--ops-raised);
+}
+
+.ops-milestone-row {
+  min-height: 5.25rem;
+  display: grid;
+  grid-template-columns: 3.25rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--ops-border);
+}
+
+.ops-milestone-row:last-child {
+  border-bottom: 0;
+}
+
+.ops-milestone-row[data-active="true"] {
+  background: linear-gradient(90deg, rgb(108 92 231 / 8%), transparent 55%);
+  box-shadow: inset 2px 0 var(--ops-violet);
+}
+
+.ops-milestone-position {
+  color: var(--ops-text-tertiary);
+  font-size: 0.6875rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.06em;
+}
+
+.ops-milestone-row-main {
+  min-width: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.ops-milestone-row-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 0;
+}
+
+.ops-milestone-row-heading a {
+  overflow: hidden;
+  color: var(--ops-text);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ops-milestone-row-heading a:hover {
+  color: #c2bcff;
+}
+
+.ops-milestone-row-main > p {
+  overflow: hidden;
+  margin: 0;
+  color: var(--ops-text-tertiary);
+  font-size: 0.625rem;
+  line-height: 1rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ops-milestone-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  color: var(--ops-text-tertiary);
+  font-size: 0.59375rem;
+}
+
+.ops-milestone-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ops-milestone-order-actions {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.ops-milestone-order-actions button {
+  width: 1.9rem;
+  height: 1.9rem;
+  border: 1px solid var(--ops-border-strong);
+  border-radius: 0.35rem;
+  background: var(--ops-surface);
+  color: var(--ops-text-tertiary);
+  cursor: pointer;
+}
+
+.ops-milestone-order-actions button:hover:not(:disabled) {
+  background: var(--ops-interactive);
+  color: var(--ops-text);
+}
+
+.ops-milestone-order-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.3;
+}
+
+.ops-milestone-empty {
+  min-height: 7rem;
+  display: grid;
+  place-content: center;
+  gap: 0.3rem;
+  padding: 1rem;
+  text-align: center;
+}
+
+.ops-milestone-empty strong {
+  color: var(--ops-text-secondary);
+  font-size: 0.75rem;
+}
+
+.ops-milestone-empty span {
+  color: var(--ops-text-tertiary);
+  font-size: 0.625rem;
+}
+
+.ops-milestone-create-form,
+.ops-milestone-override-form {
+  border: 1px solid var(--ops-border);
+  border-radius: 0.5rem;
+  background: var(--ops-raised);
+  padding: 1rem;
+}
+
+.ops-milestone-create-trigger {
+  width: fit-content;
+}
+
+.ops-client-preview-surface {
+  margin-top: 1rem;
+  display: grid;
+  gap: 0.55rem;
+  border: 1px solid rgb(139 126 255 / 18%);
+  border-radius: 0.6rem;
+  background: linear-gradient(135deg, rgb(108 92 231 / 8%), var(--ops-raised));
+  padding: 1.15rem;
+}
+
+.ops-client-preview-surface > p:not(.ops-section-label) {
+  max-width: 46rem;
+  margin: 0;
+  color: var(--ops-text-secondary);
+  font-size: 0.6875rem;
+  line-height: 1.15rem;
+}
+
+.ops-client-preview-surface > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  color: var(--ops-text-tertiary);
+  font-size: 0.625rem;
+}
+
+.ops-client-preview-surface > strong {
+  color: #c2bcff;
+  font-size: 0.6875rem;
+  font-weight: 580;
+}
+
+.ops-publication-card {
+  border-color: rgb(139 126 255 / 24%);
+}
+
+.ops-publication-checklist {
+  margin-top: 1rem;
+}
+
+@media (min-width: 64rem) {
+  .ops-publication-checklist {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+.ops-publication-summary {
+  margin-top: 0.85rem;
+  display: grid;
+  gap: 0.25rem;
+}
+
+.ops-publication-summary p,
+.ops-publication-summary span,
+.ops-publication-confirmation span {
+  margin: 0;
+  color: var(--ops-text-tertiary);
+  font-size: 0.6875rem;
+  line-height: 1.15rem;
+}
+
+.ops-publication-action {
+  margin-top: 1rem;
+}
+
+.ops-publication-confirmation {
+  margin-top: 1rem;
+  display: grid;
+  gap: 0.4rem;
+  border: 1px solid rgb(139 126 255 / 22%);
+  border-radius: 0.45rem;
+  background: rgb(108 92 231 / 6%);
+  padding: 0.85rem;
+}
+
+.ops-publication-confirmation strong {
+  color: var(--ops-text);
+  font-size: 0.75rem;
+}
+
+.ops-publication-confirmation > div {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.3rem;
+}
+
+.ops-milestone-facts {
+  margin: 1rem 0 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.ops-milestone-facts > div {
+  display: grid;
+  gap: 0.2rem;
+  border-top: 1px solid var(--ops-border);
+  padding-top: 0.55rem;
+}
+
+.ops-milestone-facts dt {
+  color: var(--ops-text-tertiary);
+  font-size: 0.59375rem;
+}
+
+.ops-milestone-facts dd {
+  margin: 0;
+  color: var(--ops-text-secondary);
+  font-size: 0.6875rem;
+}
+
+.ops-milestone-lifecycle-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.ops-milestone-cancel-confirmation {
+  flex: 1 1 100%;
+  display: grid;
+  gap: 0.35rem;
+  border: 1px solid rgb(228 110 104 / 18%);
+  border-radius: 0.45rem;
+  background: rgb(228 110 104 / 5%);
+  padding: 0.75rem;
+}
+
+.ops-milestone-cancel-confirmation strong {
+  color: #e3a09c;
+  font-size: 0.6875rem;
+}
+
+.ops-milestone-cancel-confirmation span {
+  color: var(--ops-text-tertiary);
+  font-size: 0.625rem;
+}
+
+.ops-milestone-cancel-confirmation > div {
+  display: flex;
+  gap: 0.5rem;
+}
+
+@media (max-width: 79.999rem) {
+  .ops-project-overview-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ops-project-overview-card-primary {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 63.999rem) {
+  .ops-milestone-row {
+    grid-template-columns: 2.5rem minmax(0, 1fr);
+  }
+
+  .ops-milestone-row-actions {
+    grid-column: 2;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 47.999rem) {
+  .ops-project-overview-header,
+  .ops-delivery-plan-header,
+  .ops-milestone-detail-header,
+  .ops-onboarding-transition-card {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .ops-project-overview-grid,
+  .ops-project-overview-columns,
+  .ops-milestone-detail-grid,
+  .ops-milestone-facts {
+    grid-template-columns: 1fr;
+  }
+
+  .ops-project-overview-card-primary {
+    grid-column: auto;
+  }
+
+  .ops-project-stage-action {
+    justify-items: start;
+  }
+
+  .ops-milestone-row {
+    grid-template-columns: 2rem minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .ops-milestone-row-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .ops-milestone-row-main > p {
+    white-space: normal;
+  }
+
+  .ops-publication-confirmation > div,
+  .ops-milestone-cancel-confirmation > div,
+  .ops-milestone-lifecycle-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   M10 Batch 3 — Client published Project and Milestone slice
+   -------------------------------------------------------------------------- */
+.client-collection-switcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 1.5rem;
+  padding: 0.25rem;
+  border: 1px solid var(--ops-border);
+  border-radius: 0.5rem;
+  background: #11151d;
+}
+
+.client-collection-switcher a {
+  min-height: 2rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  border-radius: 0.35rem;
+  padding: 0 0.7rem;
+  color: var(--ops-text-tertiary);
+  font-size: 0.6875rem;
+  font-weight: 580;
+  text-decoration: none;
+}
+
+.client-collection-switcher a:hover,
+.client-collection-switcher a[aria-current="page"] {
+  background: var(--client-accent-soft, var(--ops-violet-muted));
+  color: var(--ops-text);
+}
+
+.client-collection-switcher a span {
+  min-width: 1.25rem;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid var(--ops-border);
+  border-radius: 999px;
+  padding: 0.05rem 0.35rem;
+  color: var(--ops-text-secondary);
+  font-size: 0.625rem;
+}
+
+.client-project-row-link {
+  min-height: 4.75rem;
+  align-items: stretch;
+  border-bottom: 1px solid var(--ops-border);
+  color: inherit;
+  text-decoration: none;
+  transition:
+    background-color var(--motion-fast) ease,
+    border-color var(--motion-fast) ease;
+}
+
+.client-project-row-link:last-child {
+  border-bottom: 0;
+}
+
+.client-project-row-link:hover {
+  background: var(--ops-raised);
+}
+
+.client-project-cell {
+  min-width: 0;
+  display: grid;
+  align-content: center;
+  gap: 0.2rem;
+  padding: 0.75rem;
+}
+
+.client-project-cell + .client-project-cell {
+  border-left: 1px solid var(--ops-border);
+}
+
+.client-project-cell strong,
+.client-project-cell small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.client-project-cell strong {
+  color: var(--ops-text-secondary);
+  font-size: 0.75rem;
+  line-height: 1.1rem;
+  font-weight: 580;
+}
+
+.client-project-cell small {
+  color: var(--ops-text-tertiary);
+  font-size: 0.625rem;
+  line-height: 1rem;
+}
+
+.client-project-identity-cell strong {
+  color: var(--ops-text);
+}
+
+.client-detail-back {
+  margin-bottom: 1.1rem;
+}
+
+.client-detail-back a {
+  color: var(--ops-text-tertiary);
+  font-size: 0.6875rem;
+  text-decoration: none;
+}
+
+.client-detail-back a:hover {
+  color: var(--client-accent-bright, #a69cff);
+}
+
+.client-project-hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding-bottom: 1.4rem;
+  border-bottom: 1px solid var(--ops-border);
+}
+
+.client-project-hero > div {
+  max-width: 48rem;
+}
+
+.client-project-hero h1 {
+  margin: 0.35rem 0 0;
+  color: var(--ops-text);
+  font-size: clamp(1.65rem, 3vw, 2.2rem);
+  line-height: 1.1;
+  font-weight: 590;
+  letter-spacing: -0.04em;
+}
+
+.client-project-hero p:last-child {
+  max-width: 42rem;
+  margin: 0.65rem 0 0;
+  color: var(--ops-text-secondary);
+  font-size: 0.8125rem;
+  line-height: 1.35rem;
+}
+
+.client-lifecycle-chip {
+  min-height: 1.8rem;
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  border: 1px solid var(--ops-border-strong);
+  border-radius: 999px;
+  padding: 0 0.65rem;
+  background: var(--ops-raised);
+  color: var(--ops-text-secondary);
+  font-size: 0.625rem;
+  font-weight: 650;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.client-lifecycle-chip[data-state="active"],
+.client-lifecycle-chip[data-state="onboarding"] {
+  border-color: color-mix(
+    in srgb,
+    var(--client-accent, var(--ops-violet)) 32%,
+    transparent
+  );
+  background: var(--client-accent-soft, var(--ops-violet-muted));
+  color: var(--client-accent-bright, #a69cff);
+}
+
+.client-lifecycle-chip[data-state="completed"] {
+  color: #7bd6b4;
+}
+
+.client-project-navigation {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  margin-top: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--ops-border);
+}
+
+.client-project-navigation a,
+.client-project-navigation span {
+  min-height: 2rem;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 0.375rem;
+  padding: 0 0.7rem;
+  font-size: 0.6875rem;
+  font-weight: 560;
+}
+
+.client-project-navigation a {
+  color: var(--ops-text-tertiary);
+  text-decoration: none;
+}
+
+.client-project-navigation a:hover,
+.client-project-navigation a[aria-current="page"] {
+  background: var(--client-accent-soft, var(--ops-violet-muted));
+  color: var(--ops-text);
+}
+
+.client-project-navigation span[aria-disabled="true"] {
+  color: color-mix(in srgb, var(--ops-text-tertiary) 58%, transparent);
+  cursor: default;
+}
+
+.client-project-summary-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.8fr) repeat(2, minmax(10rem, 0.7fr));
+  gap: 0.8rem;
+  margin-top: 1.4rem;
+}
+
+.client-project-focus-card,
+.client-project-stat-card,
+.client-project-surface-card,
+.client-project-progress {
+  border: 1px solid var(--ops-border);
+  border-radius: 0.625rem;
+  background: #141821;
+}
+
+.client-project-focus-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  padding: 1rem;
+}
+
+.client-project-focus-card > div {
+  min-width: 0;
+}
+
+.client-project-focus-card h2,
+.client-project-surface-card h2 {
+  margin: 0.15rem 0 0;
+  color: var(--ops-text);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 590;
+}
+
+.client-project-focus-card p:not(.client-section-label),
+.client-milestone-purpose-card p:not(.client-section-label) {
+  margin: 0.5rem 0 0;
+  color: var(--ops-text-secondary);
+  font-size: 0.6875rem;
+  line-height: 1.1rem;
+}
+
+.client-primary-action {
+  min-height: 2rem;
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.8rem;
+  border: 1px solid
+    color-mix(in srgb, var(--client-accent, var(--ops-violet)) 34%, transparent);
+  border-radius: 0.375rem;
+  padding: 0 0.65rem;
+  background: var(--client-accent-soft, var(--ops-violet-muted));
+  color: var(--ops-text);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.client-primary-action svg {
+  width: 0.8rem;
+  height: 0.8rem;
+  color: var(--client-accent-bright, #a69cff);
+}
+
+.client-project-stat-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem;
+}
+
+.client-project-stat-card > div {
+  min-width: 0;
+  display: grid;
+  gap: 0.2rem;
+}
+
+.client-project-stat-card strong,
+.client-milestone-fact-card strong {
+  color: var(--ops-text);
+  font-size: 0.875rem;
+  font-weight: 590;
+}
+
+.client-project-stat-card span:last-child,
+.client-milestone-fact-card span:last-child {
+  color: var(--ops-text-tertiary);
+  font-size: 0.625rem;
+  line-height: 1rem;
+}
+
+.client-project-progress {
+  margin-top: 0.8rem;
+  padding: 1rem;
+}
+
+.client-surface-empty {
+  min-height: 7rem;
+}
+
+.client-milestone-timeline {
+  position: relative;
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.client-milestone-timeline::before {
+  content: "";
+  position: absolute;
+  top: 1.35rem;
+  bottom: 1.35rem;
+  left: 0.9rem;
+  width: 1px;
+  background: var(--ops-border-strong);
+}
+
+.client-milestone-timeline li {
+  position: relative;
+  min-height: 4.35rem;
+  display: grid;
+  grid-template-columns: 1.8rem minmax(0, 1fr);
+  gap: 0.7rem;
+  align-items: center;
+}
+
+.client-milestone-marker {
+  z-index: 1;
+  width: 1.8rem;
+  height: 1.8rem;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--ops-border-strong);
+  border-radius: 50%;
+  background: #141821;
+  color: var(--ops-text-tertiary);
+  font-size: 0.625rem;
+  font-weight: 650;
+}
+
+.client-milestone-timeline li[data-state="active"] .client-milestone-marker {
+  border-color: var(--client-accent, var(--ops-violet));
+  background: var(--client-accent-soft, var(--ops-violet-muted));
+  color: var(--client-accent-bright, #a69cff);
+}
+
+.client-milestone-timeline li[data-state="completed"] .client-milestone-marker {
+  border-color: rgb(63 185 142 / 40%);
+  color: #7bd6b4;
+}
+
+.client-milestone-timeline a {
+  min-width: 0;
+  display: grid;
+  gap: 0.25rem;
+  border-radius: 0.45rem;
+  padding: 0.65rem 0.75rem;
+  color: inherit;
+  text-decoration: none;
+}
+
+.client-milestone-timeline a:hover {
+  background: var(--ops-raised);
+}
+
+.client-milestone-title-row {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.client-milestone-title-row strong {
+  overflow: hidden;
+  color: var(--ops-text-secondary);
+  font-size: 0.75rem;
+  font-weight: 580;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.client-milestone-title-row > span:last-child,
+.client-milestone-date-range {
+  color: var(--ops-text-tertiary);
+  font-size: 0.625rem;
+}
+
+.client-project-overview-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem;
+  margin-top: 0.8rem;
+}
+
+.client-project-surface-card {
+  padding: 1rem;
+}
+
+.client-project-activity-list {
+  display: grid;
+  margin-top: 0.2rem;
+}
+
+.client-project-activity-list > div {
+  min-height: 3.6rem;
+  display: grid;
+  grid-template-columns: 0.5rem minmax(0, 1fr);
+  gap: 0.65rem;
+  align-items: start;
+  padding: 0.65rem 0;
+  border-top: 1px solid var(--ops-border);
+}
+
+.client-activity-mark {
+  width: 0.4rem;
+  height: 0.4rem;
+  margin-top: 0.35rem;
+  border-radius: 50%;
+  background: var(--client-accent, var(--ops-violet));
+}
+
+.client-project-activity-list > div > div {
+  min-width: 0;
+  display: grid;
+  gap: 0.1rem;
+}
+
+.client-project-activity-list strong {
+  color: var(--ops-text-secondary);
+  font-size: 0.6875rem;
+  font-weight: 580;
+}
+
+.client-project-activity-list span,
+.client-project-activity-list small {
+  color: var(--ops-text-tertiary);
+  font-size: 0.625rem;
+  line-height: 1rem;
+}
+
+.client-milestone-context-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) repeat(2, minmax(10rem, 0.75fr));
+  gap: 0.8rem;
+  margin-top: 1.4rem;
+}
+
+.client-milestone-purpose-card,
+.client-milestone-fact-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.8rem;
+}
+
+.client-milestone-purpose-card > div,
+.client-milestone-fact-card > div {
+  min-width: 0;
+}
+
+.client-milestone-fact-card > div {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.client-milestone-published-columns {
+  margin-top: 0.8rem;
+}
+
+@media (max-width: 63.999rem) {
+  .client-project-summary-grid,
+  .client-milestone-context-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .client-project-focus-card,
+  .client-milestone-purpose-card {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 47.999rem) {
+  .client-collection-switcher {
+    width: 100%;
+  }
+
+  .client-collection-switcher a {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .client-project-row-link {
+    gap: 0;
+    padding: 0.35rem 0;
+  }
+
+  .client-project-cell {
+    padding: 0.55rem 0.8rem;
+  }
+
+  .client-project-cell + .client-project-cell {
+    border-left: 0;
+    border-top: 1px solid var(--ops-border);
+  }
+
+  .client-project-hero {
+    display: grid;
+    gap: 0.9rem;
+  }
+
+  .client-lifecycle-chip {
+    justify-self: start;
+  }
+
+  .client-project-navigation {
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .client-project-navigation::-webkit-scrollbar {
+    display: none;
+  }
+
+  .client-project-navigation a,
+  .client-project-navigation span {
+    flex: 0 0 auto;
+  }
+
+  .client-project-summary-grid,
+  .client-project-overview-columns,
+  .client-milestone-context-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .client-project-focus-card,
+  .client-milestone-purpose-card {
+    grid-column: auto;
+  }
+
+  .client-project-focus-card,
+  .client-project-stat-card,
+  .client-project-surface-card,
+  .client-project-progress {
+    padding: 0.85rem;
+  }
+
+  .client-milestone-title-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.15rem;
   }
 }

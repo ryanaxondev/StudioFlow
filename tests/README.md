@@ -59,3 +59,26 @@ M08 adds token contrast checks, product-shell integration tests, Radix focus che
 `tests/database/m09-product-population.integration.test.ts` closes the M07-to-M09 Client Organization authorization handoff for assigned Delivery Managers, including Client invitation/member management, and proves required Delivery Manager / Client Approver upstream memberships cannot be orphaned. `tests/integration/m09-project-surfaces.test.tsx` covers Client-to-Project creation context, explicit authority reassignment confirmation, and in-product Draft deletion confirmation.
 
 - M09 Product population tests also lock capability-aware Draft links: a Workspace Delivery Manager assigned to a Project only as `AGENCY_MEMBER` may see the Project but must not receive Project-management affordances.
+
+## M10 Milestone and Publication Foundation
+
+`tests/database/m10-milestones.integration.test.ts` covers Milestone Draft authority, optimistic Project/Milestone versions, semantic no-op protection, ordered-plan mutation, Project publication requirements, atomic Project/Milestone/Activity/Outbox publication, later Milestone Draft publication, first-Milestone activation, one-Active-Milestone enforcement, standard and override completion, cancellation, Onboarding-to-Active transition, Client Project access after publication, Agency-only Milestone projection isolation from Client actors, reduced Agency-contributor controls, and deterministic development seed v2.
+
+`tests/database/worker-runtime.integration.test.ts` additionally proves that Product Outbox intents without a registered processor remain pending and consume no delivery attempt until a later milestone such as M19 registers the matching processor, after which the historical row becomes claimable through the same Worker path.
+
+### M10 Agency Delivery Plan integration
+
+`tests/integration/m10-agency-delivery-plan.test.tsx` covers the Batch 2 interaction contracts that are easy to regress outside PostgreSQL:
+
+- Project publication requires an in-product confirmation before the Server Action runs.
+- assigned Agency contributors can reorder the Draft Milestone sequence without publication authority.
+- a newer Project `row_version` received from a sibling Server refresh is used for the next Project write without remounting or erasing unsaved identity fields.
+- Milestone Detail adopts newer Project and Milestone row versions without erasing an unsaved Draft edit.
+
+The authoritative publication, ordering, lifecycle, concurrency, Activity, Outbox, and authorization rules remain database integration tests.
+
+### M10 Client Published Slice integration
+
+`tests/database/m10-milestones.integration.test.ts` also proves Client Project/Milestone projections expose only published Milestones, derive client ordinals from the published subset, keep agency-only Draft churn out of Client recency, return not-found for unpublished Milestone detail, and exclude completion-override detail from Client Milestone and Activity DTOs.
+
+`tests/integration/m10-client-published-slice.test.tsx` covers the Client Project local-navigation handoff and contextual Milestone timeline. Later-owned Deliverables and Activity destinations remain non-interactive until their owning milestones create real screens.

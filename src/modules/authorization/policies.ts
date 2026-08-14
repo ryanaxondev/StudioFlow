@@ -275,6 +275,104 @@ export function canDeleteDraftProject(
   return projectAgencyManagerPolicy(actor, subject, "DELETE_DRAFT_PROJECT");
 }
 
+function projectAgencyContributorPolicy<
+  Capability extends AuthorizationCapability,
+>(
+  actor: ActorContext,
+  subject: ProjectPolicySubject,
+  capability: Capability,
+): CapabilityResult<Capability> {
+  const workspaceMembership = actor.workspaceMemberships.find(
+    (membership) => membership.workspaceId === subject.workspaceId,
+  );
+
+  if (workspaceMembership?.role === "AGENCY_OWNER") {
+    return allow(capability);
+  }
+
+  if (!workspaceMembership) {
+    return deny(capability, "NO_WORKSPACE_MEMBERSHIP");
+  }
+
+  if (subject.actorAssignment?.kind !== "AGENCY") {
+    return deny(capability, "PROJECT_ASSIGNMENT_REQUIRED");
+  }
+
+  const assignmentMatchesWorkspaceRole =
+    workspaceMembership.role === "DELIVERY_MANAGER"
+      ? subject.actorAssignment.role === "DELIVERY_MANAGER" ||
+        subject.actorAssignment.role === "AGENCY_MEMBER"
+      : workspaceMembership.role === "AGENCY_MEMBER" &&
+        subject.actorAssignment.role === "AGENCY_MEMBER";
+
+  return assignmentMatchesWorkspaceRole
+    ? allow(capability)
+    : deny(capability, "PROJECT_CONTEXT_MISMATCH");
+}
+
+export function canEditMilestoneDraft(
+  actor: ActorContext,
+  subject: ProjectPolicySubject,
+): CapabilityResult<"EDIT_MILESTONE_DRAFT"> {
+  if (
+    subject.lifecycle !== "DRAFT" &&
+    subject.lifecycle !== "ONBOARDING" &&
+    subject.lifecycle !== "ACTIVE"
+  ) {
+    return deny("EDIT_MILESTONE_DRAFT", "ROLE_FORBIDDEN");
+  }
+
+  return projectAgencyContributorPolicy(actor, subject, "EDIT_MILESTONE_DRAFT");
+}
+
+export function canPublishProject(
+  actor: ActorContext,
+  subject: ProjectPolicySubject,
+): CapabilityResult<"PUBLISH_PROJECT"> {
+  if (subject.lifecycle !== "DRAFT") {
+    return deny("PUBLISH_PROJECT", "ROLE_FORBIDDEN");
+  }
+
+  return projectAgencyManagerPolicy(actor, subject, "PUBLISH_PROJECT");
+}
+
+export function canPublishMilestone(
+  actor: ActorContext,
+  subject: ProjectPolicySubject,
+): CapabilityResult<"PUBLISH_MILESTONE"> {
+  if (subject.lifecycle !== "ONBOARDING" && subject.lifecycle !== "ACTIVE") {
+    return deny("PUBLISH_MILESTONE", "ROLE_FORBIDDEN");
+  }
+
+  return projectAgencyManagerPolicy(actor, subject, "PUBLISH_MILESTONE");
+}
+
+export function canManageMilestoneLifecycle(
+  actor: ActorContext,
+  subject: ProjectPolicySubject,
+): CapabilityResult<"MANAGE_MILESTONE_LIFECYCLE"> {
+  if (subject.lifecycle !== "ONBOARDING" && subject.lifecycle !== "ACTIVE") {
+    return deny("MANAGE_MILESTONE_LIFECYCLE", "ROLE_FORBIDDEN");
+  }
+
+  return projectAgencyManagerPolicy(
+    actor,
+    subject,
+    "MANAGE_MILESTONE_LIFECYCLE",
+  );
+}
+
+export function canMoveProjectToActive(
+  actor: ActorContext,
+  subject: ProjectPolicySubject,
+): CapabilityResult<"MOVE_PROJECT_TO_ACTIVE"> {
+  if (subject.lifecycle !== "ONBOARDING") {
+    return deny("MOVE_PROJECT_TO_ACTIVE", "ROLE_FORBIDDEN");
+  }
+
+  return projectAgencyManagerPolicy(actor, subject, "MOVE_PROJECT_TO_ACTIVE");
+}
+
 export function canEnterClientPortal(
   actor: ActorContext,
 ): CapabilityResult<"ENTER_CLIENT_PORTAL"> {

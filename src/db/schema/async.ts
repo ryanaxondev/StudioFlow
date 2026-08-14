@@ -98,6 +98,9 @@ export const outboxEvents = pgTable(
     index("outbox_claim_ready_idx")
       .on(table.availableAt, table.createdAt)
       .where(sql`${table.processedAt} IS NULL AND ${table.failedAt} IS NULL`),
+    index("outbox_claim_event_type_ready_idx")
+      .on(table.eventType, table.availableAt, table.createdAt)
+      .where(sql`${table.processedAt} IS NULL AND ${table.failedAt} IS NULL`),
     index("outbox_lock_expiry_idx")
       .on(table.lockExpiresAt)
       .where(sql`${table.lockExpiresAt} IS NOT NULL`),

@@ -30,6 +30,27 @@ describe("M08 Batch 3 client and shared visual surfaces", () => {
     expect(projects).not.toContain("Projects will appear here");
   });
 
+  test("M10 Client Project and Milestone routes keep internal delivery fields out of screen source", () => {
+    const projects = read("src/app/portal/projects/page.tsx");
+    const overview = read("src/app/portal/projects/[projectId]/page.tsx");
+    const milestone = read(
+      "src/app/portal/projects/[projectId]/milestones/[milestoneId]/page.tsx",
+    );
+    const queries = read("src/modules/milestones/queries.ts");
+
+    expect(projects).toContain("listClientProjects");
+    expect(overview).toContain("getClientMilestonePlan");
+    expect(overview).toContain("ClientProjectTimeline");
+    expect(milestone).toContain("getClientMilestoneDetail");
+    expect(queries).toContain("isNotNull(milestones.publishedAt)");
+
+    for (const source of [projects, overview, milestone]) {
+      expect(source).not.toContain("completionOverrideReason");
+      expect(source).not.toContain("rowVersion");
+      expect(source).not.toContain("Delivery Manager");
+    }
+  });
+
   test("Invitation, recovery, denied, and not-found surfaces use product-owned Obsidian frames", () => {
     const invitation = read("src/app/invite/[token]/page.tsx");
     const recovery = read("src/app/recover-access/page.tsx");

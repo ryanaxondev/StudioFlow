@@ -92,7 +92,7 @@ export async function runProjectCommand<Result extends JsonObject>(
       commandType: options.commandType,
       idempotencyKey,
       requestFingerprint,
-      expiresAt: new Date(now.getTime() + IDEMPOTENCY_TTL_MS),
+      ttlMs: IDEMPOTENCY_TTL_MS,
     });
 
     if (reservation.kind === "conflict") {

@@ -1019,7 +1019,7 @@ The sequence is fixed by domain dependency.
 | `0004_workspaces_and_members.sql`            | M06           | Workspaces, branding, Workspace members                    |
 | `0005_clients_and_invitations.sql`           | M06           | Client Organizations, Client Members, invitations          |
 | `0006_projects_memberships_and_activity.sql` | M09           | Projects, Project Members, immutable Activity              |
-| `0007_milestones.sql`                        | M10           | Milestones and active-Milestone constraint                 |
+| `0007_milestones.sql`                        | M10           | Milestones, publication boundary, active constraint, registered-event Outbox claim index |
 | `0008_client_actions_and_blocking.sql`       | M11           | Actions, submissions, reopen history, blocking obligations |
 | `0009_assets_and_uploads.sql`                | M12           | Assets, variants, upload intents                           |
 | `0010_deliverables_and_versions.sql`         | M13           | Deliverables and Versions                                  |
@@ -1496,18 +1496,22 @@ Apply:
 
 Implement:
 
-- Milestone Draft
+- Milestone Draft as an agency-only publication state, separate from Milestone lifecycle
+- Explicit `published_at` visibility boundary for Milestones
 - Position ordering
 - One Active Milestone partial unique index
 - Project publication validation
 - Publish into Onboarding
+- Atomic publication of the current Draft Milestone plan
 - First Milestone activation
+- Independent publication of later Milestone Drafts
 - Milestone completion criteria interface
 - Milestone cancel
 - Onboarding-to-Active transition
 - Transactional Activity for publication and lifecycle changes
-- Outbox intent for invitation and publication communication
-- Kestrelon Milestone sequence in the development seed
+- Outbox intent for Project-publication communication
+- Worker claim filtering plus a registered-event ready index so domain Outbox intents without a registered processor remain pending for M19 without starving current processors
+- Kestrelon Milestone sequence in development seed v2
 
 Commands:
 
@@ -1516,6 +1520,7 @@ createMilestoneDraft
 updateMilestoneDraft
 reorderMilestones
 publishProject
+publishMilestone
 activateMilestone
 completeMilestone
 completeMilestoneWithOverride
@@ -1528,6 +1533,7 @@ Implement Screens:
 - AG-08 Project Setup, complete workflow
 - AG-10 Delivery Plan — Milestones
 - AG-11 Milestone Detail
+- CL-02 Client Projects, real published collection population required to enter Project detail
 - CL-03 Client Project Overview, structural Onboarding state
 - CL-04 Client Milestone Detail, published-only
 - AG-09 Agency Project Overview, structural base
@@ -1539,6 +1545,8 @@ Implement Screens:
 - Exactly one Delivery Manager
 - Exactly one Client Approver
 - At least one Milestone
+- Semantic no-op Milestone update does not advance row versions or Activity
+- Later Milestone Draft remains agency-only until manager publication
 - First Milestone activation
 - Second Active Milestone blocked
 - Client cannot view Draft
@@ -1548,6 +1556,7 @@ Implement Screens:
 - Project publication Activity
 - Milestone lifecycle Activity
 - Publication and Outbox atomicity
+- Unregistered Product Outbox intent remains pending and unclaimed until its processor exists, then becomes claimable after processor registration
 - Seed Milestone order and dates
 
 ### Exit Gate
@@ -1559,6 +1568,7 @@ A Project can move from Draft to Onboarding with one valid Active Milestone and 
 - No Client Actions
 - No Deliverables
 - No Project Health
+- No Project-publication email processor before M19
 - No final P0 polish
 
 ---
@@ -2288,11 +2298,21 @@ Implement:
 - One manual reminder
 - Delivery failure state
 - Wiring of accumulated domain Outbox event types from M06–M18
+- Activation of previously pending Product Outbox intents by registering their processors; processor registration makes those event types claim-eligible without rewriting historical rows
+- Historical payload-version compatibility for accumulated pending intents
+- Current-access recipient resolution for pre-M19 Product intents; persisted domain payload identifiers do not bypass access revalidation at delivery time
 - Notification operational queries
+
+Pre-M19 Worker rule:
+
+- The Worker claims only Outbox event types registered in the running processor registry.
+- Domain intents introduced before their Product notification processor exists remain pending with zero delivery attempts; they are not marked failed merely because M19 has not been implemented yet.
+- Events already processed by earlier foundation processors, including authentication and invitation delivery, are never replayed simply because M19 adds more processors.
 
 Required email events:
 
 - Invitations
+- Project publication
 - Client Action assignment
 - Reminder
 - Deliverable ready
@@ -2321,6 +2341,8 @@ Required email events:
 - Due date changed before send
 - Email failure does not roll back state
 - Historical Outbox payload compatibility
+- Pending pre-M19 domain intent becomes claimable only after the matching processor is registered
+- Already processed foundation events are not redelivered when M19 expands the registry
 
 ### Exit Gate
 
@@ -2882,36 +2904,43 @@ Commands must be introduced in this order:
 4. reassignDeliveryManager
 5. reassignClientApprover
 6. createMilestoneDraft
-7. publishProject
-8. activateMilestone
-9. createClientActionDraft
-10. publishClientAction
-11. completeClientAction
-12. reopenClientAction
-13. createUploadIntent
-14. finalizeUpload
-15. createDeliverableDraft
-16. createVersionDraft
-17. publishDeliverableVersion
-18. createCommentThread
-19. replyToCommentThread
-20. resolveCommentThread
-21. reopenCommentThread
-22. recordReviewDecision
-23. classifyRevisionRequest
-24. requestRevisionClarification
-25. respondToRevisionClarification
-26. createChangeRequestDraft
-27. sendChangeRequest
-28. recordChangeRequestDecision
-29. applyChangeRequest
-30. createHandoff
-31. publishHandoff
-32. acknowledgeHandoff
-33. completeProject
-34. completeProjectWithoutAcknowledgment
-35. cancelProject
-36. archiveProject
+7. updateMilestoneDraft
+8. reorderMilestones
+9. publishProject
+10. publishMilestone
+11. activateMilestone
+12. completeMilestone
+13. completeMilestoneWithOverride
+14. cancelMilestone
+15. moveProjectToActive
+16. createClientActionDraft
+17. publishClientAction
+18. completeClientAction
+19. reopenClientAction
+20. createUploadIntent
+21. finalizeUpload
+22. createDeliverableDraft
+23. createVersionDraft
+24. publishDeliverableVersion
+25. createCommentThread
+26. replyToCommentThread
+27. resolveCommentThread
+28. reopenCommentThread
+29. recordReviewDecision
+30. classifyRevisionRequest
+31. requestRevisionClarification
+32. respondToRevisionClarification
+33. createChangeRequestDraft
+34. sendChangeRequest
+35. recordChangeRequestDecision
+36. applyChangeRequest
+37. createHandoff
+38. publishHandoff
+39. acknowledgeHandoff
+40. completeProject
+41. completeProjectWithoutAcknowledgment
+42. cancelProject
+43. archiveProject
 ```
 
 A later command may depend on earlier infrastructure.

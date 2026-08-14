@@ -96,6 +96,9 @@ export default async function AgencyLandingPage({ searchParams }: PageProps) {
         String(right.targetCompletionDate),
       ),
     );
+  const activeMilestoneProjects = deliveryProjects.filter(
+    (project) => project.activeMilestoneId && project.activeMilestoneTitle,
+  );
 
   const pulseMetrics = [
     { label: "Draft setup", tone: "attention", value: lifecycleCounts.DRAFT },
@@ -213,6 +216,48 @@ export default async function AgencyLandingPage({ searchParams }: PageProps) {
         <article className="delivery-brief-panel">
           <div className="ops-section-heading ops-section-heading-compact">
             <div>
+              <span className="ops-section-label">Current delivery</span>
+              <h2>Active Milestone</h2>
+            </div>
+            <span className="ops-count-badge">
+              {activeMilestoneProjects.length}
+            </span>
+          </div>
+          {activeMilestoneProjects[0] ? (
+            <Link
+              className="delivery-inline-empty delivery-inline-link"
+              href={`/agency/projects/${activeMilestoneProjects[0].projectId}/delivery/milestones/${activeMilestoneProjects[0].activeMilestoneId}?workspaceId=${selected.workspaceId}`}
+            >
+              <span
+                className="delivery-empty-glyph"
+                data-tone="success"
+                aria-hidden="true"
+              />
+              <div>
+                <strong>
+                  {activeMilestoneProjects[0].activeMilestoneTitle}
+                </strong>
+                <span>{activeMilestoneProjects[0].title}</span>
+              </div>
+            </Link>
+          ) : (
+            <div className="delivery-inline-empty">
+              <span
+                className="delivery-empty-glyph"
+                data-tone="neutral"
+                aria-hidden="true"
+              />
+              <div>
+                <strong>No Active Milestone</strong>
+                <span>Published delivery work will surface here.</span>
+              </div>
+            </div>
+          )}
+        </article>
+
+        <article className="delivery-brief-panel">
+          <div className="ops-section-heading ops-section-heading-compact">
+            <div>
               <span className="ops-section-label">Timeline</span>
               <h2>Nearest target</h2>
             </div>
@@ -311,24 +356,20 @@ export default async function AgencyLandingPage({ searchParams }: PageProps) {
                 </>
               );
 
-              return project.lifecycle === "DRAFT" &&
-                project.canManageProject ? (
+              const projectHref =
+                project.lifecycle === "DRAFT" && project.canManageProject
+                  ? `/agency/projects/${project.projectId}/setup?workspaceId=${selected.workspaceId}`
+                  : `/agency/projects/${project.projectId}?workspaceId=${selected.workspaceId}`;
+
+              return (
                 <Link
                   className="delivery-table-row delivery-table-project-row"
                   role="row"
                   key={project.projectId}
-                  href={`/agency/projects/${project.projectId}/setup?workspaceId=${selected.workspaceId}`}
+                  href={projectHref}
                 >
                   {row}
                 </Link>
-              ) : (
-                <div
-                  className="delivery-table-row delivery-table-project-row delivery-table-project-row-static"
-                  role="row"
-                  key={project.projectId}
-                >
-                  {row}
-                </div>
               );
             })
           )}

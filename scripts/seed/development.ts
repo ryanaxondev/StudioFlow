@@ -1,13 +1,18 @@
 import { createDatabaseClient } from "../../src/db/client";
 import { parseApplicationDatabaseEnvironment } from "../../src/db/config";
 import {
+  DEVELOPMENT_SEED_V2_VERSION,
+  LATEST_DEVELOPMENT_SEED_VERSION,
+  seedDevelopmentV2,
+} from "../../src/modules/milestones/development-seed";
+import {
   DEVELOPMENT_SEED_VERSION,
   seedDevelopmentV1,
 } from "../../src/modules/projects/development-seed";
 
 function readVersionFlag(): number {
   const index = process.argv.indexOf("--version");
-  if (index < 0) return DEVELOPMENT_SEED_VERSION;
+  if (index < 0) return LATEST_DEVELOPMENT_SEED_VERSION;
 
   const raw = process.argv[index + 1];
   const version = raw ? Number(raw) : Number.NaN;
@@ -37,7 +42,17 @@ async function main(): Promise<void> {
   });
 
   try {
-    const result = await seedDevelopmentV1(database, version);
+    const result =
+      version === DEVELOPMENT_SEED_VERSION
+        ? await seedDevelopmentV1(database, version)
+        : version === DEVELOPMENT_SEED_V2_VERSION
+          ? await seedDevelopmentV2(database, version)
+          : null;
+    if (!result) {
+      throw new Error(
+        `Unsupported development seed version ${version}. Supported versions are 1 and ${DEVELOPMENT_SEED_V2_VERSION}.`,
+      );
+    }
     console.log(
       `Development seed v${result.version} ready: workspace=${result.workspaceId}, client=${result.clientOrganizationId}, project=${result.projectId}.`,
     );

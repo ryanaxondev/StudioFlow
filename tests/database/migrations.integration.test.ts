@@ -14,9 +14,10 @@ const approvedImplementedMigrations = [
   "0004_workspaces_and_members.sql",
   "0005_clients_and_invitations.sql",
   "0006_projects_memberships_and_activity.sql",
+  "0007_milestones.sql",
 ] as const;
 
-describe.sequential("migration integrity through M09", () => {
+describe.sequential("migration integrity through M10", () => {
   it("applies all implemented migrations to an empty database", async () => {
     const database = await createDisposableTestDatabase();
 
@@ -49,6 +50,7 @@ describe.sequential("migration integrity through M09", () => {
           "client_organizations",
           "idempotency_records",
           "invitations",
+          "milestones",
           "outbox_events",
           "project_members",
           "projects",
@@ -91,7 +93,7 @@ describe.sequential("migration integrity through M09", () => {
       });
 
       expect(replay.applied).toEqual([]);
-      expect(replay.skipped).toHaveLength(6);
+      expect(replay.skipped).toHaveLength(7);
     } finally {
       await database.drop();
     }
@@ -116,7 +118,7 @@ describe.sequential("migration integrity through M09", () => {
 
       const files = await readMigrationFiles();
       expect(files.map((migration) => migration.version)).toEqual([
-        1, 2, 3, 4, 5, 6,
+        1, 2, 3, 4, 5, 6, 7,
       ]);
       expect(files.slice(0, 3).map((migration) => migration.name)).toEqual(
         approvedImplementedMigrations.slice(0, 3),

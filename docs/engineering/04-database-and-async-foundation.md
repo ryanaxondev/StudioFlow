@@ -142,6 +142,8 @@ actor + command type + idempotency key
 
 The request fingerprint is a canonical SHA-256 digest. Reusing the same key with the same fingerprint returns the stored result reference. Reusing it with another fingerprint returns conflict.
 
+Idempotency retention is operational infrastructure time, not Product/domain time. Application commands pass a TTL to the repository; `created_at` and `expires_at` are anchored to the same PostgreSQL transaction clock. An injectable Product `Clock` may control Activity/lifecycle timestamps, but it must not shift idempotency retention into the past or future relative to the database/Worker runtime.
+
 ## Transactional Outbox
 
 Outbox Events are created inside domain transactions. Workers claim available events in bounded batches with:
@@ -219,3 +221,11 @@ Database credentials are validated per runtime boundary:
 - Release migrations validate `MIGRATION_DATABASE_URL` plus the Web and Worker URLs needed to apply runtime grants.
 
 This preserves the approved separation between migration, Web, and Worker database roles. A process must not require credentials belonging exclusively to another runtime.
+
+## M10 Outbox Claim Refinement
+
+M04 established generic leasing before Product domains emitted events whose processors intentionally arrive later. M10 makes that deferred-delivery contract explicit without changing the Outbox row shape: the running Worker passes its registered processor names into the claim query, and only matching event types are claim-eligible. Migration `0007` adds an `event_type, available_at, created_at` partial ready index so deferred event types can accumulate without making registered-event polling depend on scanning unrelated old rows.
+
+Therefore an Outbox row whose Product processor has not been implemented yet remains pending, unlocked, and at `attempt_count = 0`. It is not a processing failure. M19 activates accumulated Product notification intents by registering the corresponding processors; historical rows then become claimable through the same M04 lease/retry path.
+
+The processor-missing failure branch remains defensive protection for a registry/claim mismatch, not the normal state for intentionally deferred Product event types.

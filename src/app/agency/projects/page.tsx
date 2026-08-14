@@ -147,22 +147,19 @@ export default async function AgencyProjectsPage({ searchParams }: PageProps) {
                 </>
               );
 
-              return project.canManageProject &&
-                project.lifecycle === "DRAFT" ? (
+              const projectHref =
+                project.lifecycle === "DRAFT" && project.canManageProject
+                  ? `/agency/projects/${project.projectId}/setup?workspaceId=${selected.workspaceId}`
+                  : `/agency/projects/${project.projectId}?workspaceId=${selected.workspaceId}`;
+
+              return (
                 <Link
                   className="ops-data-table-row ops-data-table-link"
                   key={project.projectId}
-                  href={`/agency/projects/${project.projectId}/setup?workspaceId=${selected.workspaceId}`}
+                  href={projectHref}
                 >
                   {row}
                 </Link>
-              ) : (
-                <div
-                  className="ops-data-table-row ops-data-table-static"
-                  key={project.projectId}
-                >
-                  {row}
-                </div>
               );
             })
           )}

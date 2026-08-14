@@ -454,9 +454,11 @@ A future version may allow limited review access to one Deliverable without full
 | Create Project                             |          Yes |                           Yes |               No |               No |                 No |
 | Edit Project settings                      |          Yes |              Assigned Project |               No |               No |                 No |
 | Assign Project members                     |          Yes |              Assigned Project |               No |               No |                 No |
+| Publish Project                            |          Yes |              Assigned Project |               No |               No |                 No |
 | View Project                               | All Projects |              Assigned Project | Assigned Project | Assigned Project |   Assigned Project |
 | Create Milestone Draft                     |          Yes |              Assigned Project | Assigned Project |               No |                 No |
 | Publish Milestone                          |          Yes |              Assigned Project |               No |               No |                 No |
+| Manage Milestone lifecycle                 |          Yes |              Assigned Project |               No |               No |                 No |
 | Create Client Action Draft                 |          Yes |              Assigned Project | Assigned Project |               No |                 No |
 | Publish, reassign, or reopen Client Action |          Yes |              Assigned Project |               No |               No |                 No |
 | Complete assigned Client Action            |           No |                            No |               No |    Assigned only |      Assigned only |
@@ -576,7 +578,10 @@ A Milestone contains:
 - Position in the project sequence
 - Related Client Actions
 - Related Deliverables
+- Publication boundary
 - Lifecycle state
+
+Milestone Draft versus Published is a visibility state, not a lifecycle value. An unpublished Milestone remains `PLANNED` and agency-only. Publishing the Project publishes the current Milestone plan atomically; later Milestone Drafts may be published independently. Client users see only published Milestones.
 
 The MVP allows only one Active Milestone at a time.
 
@@ -1656,7 +1661,8 @@ Authorized agency users must be able to:
 - Reorder planned milestones
 - Define title and client-facing description
 - Define planned dates
-- Activate a Planned Milestone when no other Milestone is Active
+- Publish a Milestone Draft when the Project is already published
+- Activate a published Planned Milestone when no other Milestone is Active
 - Complete a milestone
 - Cancel a milestone
 - Record completion override reason

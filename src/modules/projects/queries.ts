@@ -34,6 +34,10 @@ export type AgencyProjectListItem = Readonly<{
   updatedAt: Date;
   rowVersion: number;
   canManageProject: boolean;
+  activeMilestoneId: string | null;
+  activeMilestoneTitle: string | null;
+  completedMilestoneCount: number;
+  publishedMilestoneCount: number;
 }>;
 
 async function listAgencyProjectsForWorkspace(
@@ -51,6 +55,10 @@ async function listAgencyProjectsForWorkspace(
     updated_at: Date;
     row_version: number;
     can_manage_project: boolean;
+    active_milestone_id: string | null;
+    active_milestone_title: string | null;
+    completed_milestone_count: number;
+    published_milestone_count: number;
   }>(
     `SELECT p.id AS project_id,
             p.title,
@@ -60,6 +68,10 @@ async function listAgencyProjectsForWorkspace(
             p.target_completion_date::text AS target_completion_date,
             p.updated_at,
             p.row_version,
+            active_milestone.id AS active_milestone_id,
+            active_milestone.title AS active_milestone_title,
+            milestone_counts.completed_count AS completed_milestone_count,
+            milestone_counts.published_count AS published_milestone_count,
             (
               actor_membership.role = 'AGENCY_OWNER'
               OR (
@@ -82,6 +94,23 @@ async function listAgencyProjectsForWorkspace(
         AND co.id = p.client_organization_id
        JOIN users dm
          ON dm.id = p.delivery_manager_user_id
+       LEFT JOIN LATERAL (
+         SELECT m.id, m.title
+           FROM milestones m
+          WHERE m.workspace_id = p.workspace_id
+            AND m.project_id = p.id
+            AND m.state = 'ACTIVE'
+            AND m.published_at IS NOT NULL
+          ORDER BY m.position
+          LIMIT 1
+       ) active_milestone ON TRUE
+       LEFT JOIN LATERAL (
+         SELECT COUNT(*) FILTER (WHERE m.state = 'COMPLETED')::int AS completed_count,
+                COUNT(*) FILTER (WHERE m.published_at IS NOT NULL)::int AS published_count
+           FROM milestones m
+          WHERE m.workspace_id = p.workspace_id
+            AND m.project_id = p.id
+       ) milestone_counts ON TRUE
        JOIN workspace_members actor_membership
          ON actor_membership.workspace_id = p.workspace_id
         AND actor_membership.user_id = $2
@@ -134,6 +163,10 @@ async function listAgencyProjectsForWorkspace(
     updatedAt: row.updated_at,
     rowVersion: row.row_version,
     canManageProject: row.can_manage_project,
+    activeMilestoneId: row.active_milestone_id,
+    activeMilestoneTitle: row.active_milestone_title,
+    completedMilestoneCount: row.completed_milestone_count ?? 0,
+    publishedMilestoneCount: row.published_milestone_count ?? 0,
   }));
 }
 
@@ -182,7 +215,11 @@ export async function getAgencyProjectDetail(
   actor: ActorContext,
   projectId: string,
 ): Promise<
-  | Readonly<{ status: "allowed"; detail: AgencyProjectDetail }>
+  | Readonly<{
+      status: "allowed";
+      detail: AgencyProjectDetail;
+      scope: AuthorizedProjectScope<"VIEW_PROJECT">;
+    }>
   | Readonly<{ status: "denied" }>
   | Readonly<{ status: "not-found" }>
 > {
@@ -194,6 +231,15 @@ export async function getAgencyProjectDetail(
   );
   if (authorization.status === "denied") return { status: "denied" };
   if (authorization.status === "not-found") return { status: "not-found" };
+  const hasAgencyMembership = actor.workspaceMemberships.some(
+    (membership) => membership.workspaceId === authorization.scope.workspaceId,
+  );
+  if (
+    !hasAgencyMembership ||
+    authorization.scope.actorAssignment?.kind === "CLIENT"
+  ) {
+    return { status: "denied" };
+  }
 
   const [row] = await database.db
     .select({
@@ -267,6 +313,7 @@ export async function getAgencyProjectDetail(
 
   return {
     status: "allowed",
+    scope: authorization.scope,
     detail: {
       ...row,
       deliveryManagerName: deliveryManagerRows[0]?.name ?? "Unknown member",
@@ -349,15 +396,29 @@ export async function getProjectSettingsCandidates(
   };
 }
 
+export type ClientProjectLifecycle =
+  "ONBOARDING" | "ACTIVE" | "HANDOFF" | "COMPLETED" | "CANCELLED" | "PAST";
+
+function toClientProjectLifecycle(
+  lifecycle: Exclude<ProjectLifecycle, "DRAFT">,
+): ClientProjectLifecycle {
+  return lifecycle === "ARCHIVED" ? "PAST" : lifecycle;
+}
+
 export type ClientProjectListItem = Readonly<{
   projectId: string;
   title: string;
   clientOrganizationName: string;
   agencyName: string;
-  lifecycle: Exclude<ProjectLifecycle, "DRAFT">;
+  lifecycle: ClientProjectLifecycle;
   clientSummary: string | null;
   targetCompletionDate: string | null;
-  updatedAt: Date;
+  currentMilestoneId: string | null;
+  currentMilestoneTitle: string | null;
+  currentMilestoneState: "ACTIVE" | null;
+  completedMilestoneCount: number;
+  publishedMilestoneCount: number;
+  clientVisibleUpdatedAt: Date;
 }>;
 
 export async function listClientProjects(
@@ -372,7 +433,11 @@ export async function listClientProjects(
     lifecycle: Exclude<ProjectLifecycle, "DRAFT">;
     client_summary: string | null;
     target_completion_date: string | null;
-    updated_at: Date;
+    current_milestone_id: string | null;
+    current_milestone_title: string | null;
+    completed_milestone_count: number;
+    published_milestone_count: number;
+    client_visible_updated_at: Date;
   }>(
     `SELECT p.id AS project_id,
             p.title,
@@ -381,7 +446,11 @@ export async function listClientProjects(
             p.lifecycle,
             p.client_summary,
             p.target_completion_date::text AS target_completion_date,
-            p.updated_at
+            active_milestone.id AS current_milestone_id,
+            active_milestone.title AS current_milestone_title,
+            milestone_counts.completed_count AS completed_milestone_count,
+            milestone_counts.published_count AS published_milestone_count,
+            COALESCE(client_activity.occurred_at, p.created_at) AS client_visible_updated_at
        FROM project_members pm
        JOIN users actor
          ON actor.id = pm.user_id
@@ -400,12 +469,48 @@ export async function listClientProjects(
         AND co.status = 'ACTIVE'
        JOIN workspaces w
          ON w.id = p.workspace_id
+       LEFT JOIN LATERAL (
+         SELECT m.id, m.title
+           FROM milestones m
+          WHERE m.workspace_id = p.workspace_id
+            AND m.project_id = p.id
+            AND m.published_at IS NOT NULL
+            AND m.state = 'ACTIVE'
+          ORDER BY m.position, m.id
+          LIMIT 1
+       ) active_milestone ON TRUE
+       LEFT JOIN LATERAL (
+         SELECT COUNT(*) FILTER (WHERE m.state = 'COMPLETED')::int AS completed_count,
+                COUNT(*)::int AS published_count
+           FROM milestones m
+          WHERE m.workspace_id = p.workspace_id
+            AND m.project_id = p.id
+            AND m.published_at IS NOT NULL
+       ) milestone_counts ON TRUE
+       LEFT JOIN LATERAL (
+         SELECT MAX(ae.occurred_at) AS occurred_at
+           FROM activity_events ae
+          WHERE ae.workspace_id = p.workspace_id
+            AND ae.project_id = p.id
+            AND ae.visibility = 'CLIENT_VISIBLE'
+            AND (
+              ae.subject_type <> 'MILESTONE'
+              OR EXISTS (
+                SELECT 1
+                  FROM milestones visible_milestone
+                 WHERE visible_milestone.workspace_id = ae.workspace_id
+                   AND visible_milestone.project_id = ae.project_id
+                   AND visible_milestone.id = ae.subject_id
+                   AND visible_milestone.published_at IS NOT NULL
+              )
+            )
+       ) client_activity ON TRUE
       WHERE pm.user_id = $1
         AND pm.side = 'CLIENT'
         AND pm.project_role IN ('CLIENT_APPROVER', 'CLIENT_CONTRIBUTOR')
         AND pm.status = 'ACTIVE'
         AND p.lifecycle <> 'DRAFT'
-      ORDER BY p.updated_at DESC, p.title, p.id`,
+      ORDER BY COALESCE(client_activity.occurred_at, p.created_at) DESC, p.title, p.id`,
     [actor.userId],
   );
 
@@ -414,11 +519,106 @@ export async function listClientProjects(
     title: row.title,
     clientOrganizationName: row.client_organization_name,
     agencyName: row.agency_name,
-    lifecycle: row.lifecycle,
+    lifecycle: toClientProjectLifecycle(row.lifecycle),
     clientSummary: row.client_summary,
     targetCompletionDate: row.target_completion_date,
-    updatedAt: row.updated_at,
+    currentMilestoneId: row.current_milestone_id,
+    currentMilestoneTitle: row.current_milestone_title,
+    currentMilestoneState: row.current_milestone_id ? "ACTIVE" : null,
+    completedMilestoneCount: row.completed_milestone_count ?? 0,
+    publishedMilestoneCount: row.published_milestone_count ?? 0,
+    clientVisibleUpdatedAt: row.client_visible_updated_at,
   }));
+}
+
+export type ClientProjectDetail = Readonly<{
+  projectId: string;
+  title: string;
+  clientOrganizationName: string;
+  agencyName: string;
+  clientSummary: string | null;
+  lifecycle: ClientProjectLifecycle;
+  plannedStartDate: string | null;
+  targetCompletionDate: string | null;
+  currentUserRole: "CLIENT_APPROVER" | "CLIENT_CONTRIBUTOR";
+}>;
+
+export async function getClientProjectDetail(
+  database: DatabaseClient,
+  actor: ActorContext,
+  projectId: string,
+): Promise<
+  | Readonly<{
+      status: "allowed";
+      detail: ClientProjectDetail;
+      scope: AuthorizedProjectScope<"VIEW_PROJECT">;
+    }>
+  | Readonly<{ status: "denied" }>
+  | Readonly<{ status: "not-found" }>
+> {
+  const authorization = await resolveProjectAuthorization(
+    database,
+    actor,
+    projectId,
+    canViewProject,
+  );
+  if (authorization.status === "denied") return { status: "denied" };
+  if (authorization.status === "not-found") return { status: "not-found" };
+  const actorAssignment = authorization.scope.actorAssignment;
+  if (actorAssignment?.kind !== "CLIENT") {
+    return { status: "denied" };
+  }
+
+  const detailResult = await database.pool.query<{
+    project_id: string;
+    title: string;
+    client_organization_name: string;
+    agency_name: string;
+    client_summary: string | null;
+    lifecycle: Exclude<ProjectLifecycle, "DRAFT">;
+    planned_start_date: string | null;
+    target_completion_date: string | null;
+  }>(
+    `SELECT p.id AS project_id,
+            p.title,
+            co.name AS client_organization_name,
+            w.name AS agency_name,
+            p.client_summary,
+            p.lifecycle,
+            p.planned_start_date::text AS planned_start_date,
+            p.target_completion_date::text AS target_completion_date
+       FROM projects p
+       JOIN client_organizations co
+         ON co.workspace_id = p.workspace_id
+        AND co.id = p.client_organization_id
+        AND co.status = 'ACTIVE'
+       JOIN workspaces w
+         ON w.id = p.workspace_id
+      WHERE p.workspace_id = $1
+        AND p.id = $2
+        AND p.lifecycle <> 'DRAFT'
+      LIMIT 1`,
+    [authorization.scope.workspaceId, authorization.scope.projectId],
+  );
+  const row = detailResult.rows[0];
+
+  if (!row) return { status: "not-found" };
+
+  return {
+    status: "allowed",
+    scope: authorization.scope,
+    detail: {
+      projectId: row.project_id,
+      title: row.title,
+      clientOrganizationName: row.client_organization_name,
+      agencyName: row.agency_name,
+      clientSummary: row.client_summary,
+      lifecycle: toClientProjectLifecycle(row.lifecycle),
+      plannedStartDate: row.planned_start_date,
+      targetCompletionDate: row.target_completion_date,
+      currentUserRole: actorAssignment.role,
+    },
+  };
 }
 
 export type ProjectActivityListItem = Readonly<{
@@ -463,33 +663,67 @@ export async function listAgencyProjectActivity(
     .limit(Math.max(1, Math.min(limit, 100)));
 }
 
+export type ClientProjectActivityListItem = Readonly<{
+  activityEventId: string;
+  eventType: string;
+  actorName: string;
+  subjectType: string;
+  subjectId: string;
+  summaryKey: string;
+  occurredAt: Date;
+}>;
+
 export async function listClientProjectActivity(
   database: DatabaseClient,
   scope: AuthorizedProjectScope<"VIEW_PROJECT">,
   limit = 50,
-): Promise<readonly Omit<ProjectActivityListItem, "visibility">[]> {
-  return database.db
-    .select({
-      activityEventId: activityEvents.id,
-      eventType: activityEvents.eventType,
-      actorName: activityEvents.actorNameSnapshot,
-      actorRole: activityEvents.actorRoleSnapshot,
-      subjectType: activityEvents.subjectType,
-      subjectId: activityEvents.subjectId,
-      summaryKey: activityEvents.summaryKey,
-      metadata: activityEvents.metadata,
-      occurredAt: activityEvents.occurredAt,
-    })
-    .from(activityEvents)
-    .where(
-      and(
-        eq(activityEvents.workspaceId, scope.workspaceId),
-        eq(activityEvents.projectId, scope.projectId),
-        eq(activityEvents.visibility, "CLIENT_VISIBLE"),
-      ),
-    )
-    .orderBy(desc(activityEvents.occurredAt), desc(activityEvents.id))
-    .limit(Math.max(1, Math.min(limit, 100)));
+): Promise<readonly ClientProjectActivityListItem[]> {
+  const boundedLimit = Math.max(1, Math.min(limit, 100));
+  const result = await database.pool.query<{
+    activity_event_id: string;
+    event_type: string;
+    actor_name: string;
+    subject_type: string;
+    subject_id: string;
+    summary_key: string;
+    occurred_at: Date;
+  }>(
+    `SELECT ae.id AS activity_event_id,
+            ae.event_type,
+            ae.actor_name_snapshot AS actor_name,
+            ae.subject_type,
+            ae.subject_id,
+            ae.summary_key,
+            ae.occurred_at
+       FROM activity_events ae
+      WHERE ae.workspace_id = $1
+        AND ae.project_id = $2
+        AND ae.visibility = 'CLIENT_VISIBLE'
+        AND (
+          ae.subject_type <> 'MILESTONE'
+          OR EXISTS (
+            SELECT 1
+              FROM milestones m
+             WHERE m.workspace_id = ae.workspace_id
+               AND m.project_id = ae.project_id
+               AND m.id = ae.subject_id
+               AND m.published_at IS NOT NULL
+          )
+        )
+      ORDER BY ae.occurred_at DESC, ae.id DESC
+      LIMIT $3`,
+    [scope.workspaceId, scope.projectId, boundedLimit],
+  );
+
+  return result.rows.map((row) => ({
+    activityEventId: row.activity_event_id,
+    eventType: row.event_type,
+    actorName: row.actor_name,
+    subjectType: row.subject_type,
+    subjectId: row.subject_id,
+    summaryKey: row.summary_key,
+    occurredAt: row.occurred_at,
+  }));
 }
 
 export type ProjectCreationCandidates = Readonly<{

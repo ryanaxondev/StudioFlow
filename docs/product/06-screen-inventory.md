@@ -1123,12 +1123,14 @@ Show the client-facing delivery sequence and the completion dependencies of each
 **Secondary Actions**
 
 - Create Milestone Draft
+- Publish a Milestone Draft when authorized
 - Reorder planned Milestones
 - Switch to Client Actions
 
 **Key States**
 
-- Draft sequence
+- Agency-only unpublished Draft sequence
+- Published Planned Milestones
 - One Active Milestone
 - All completed
 - Cancelled Milestone
@@ -1182,11 +1184,13 @@ Manage one Milestone’s purpose, related client responsibilities, Deliverables,
 - Create related Client Action
 - Create Deliverable
 - Edit Draft
+- Publish Draft when authorized
 - Return to sequence
 
 **Key States**
 
-- Planned
+- Unpublished Planned Draft (agency-only)
+- Published Planned
 - Active
 - Ready to complete
 - Blocked

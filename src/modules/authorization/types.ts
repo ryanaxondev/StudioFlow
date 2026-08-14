@@ -27,6 +27,11 @@ export type AuthorizationCapability =
   | "EDIT_PROJECT_SETTINGS"
   | "MANAGE_PROJECT_MEMBERS"
   | "DELETE_DRAFT_PROJECT"
+  | "EDIT_MILESTONE_DRAFT"
+  | "PUBLISH_MILESTONE"
+  | "PUBLISH_PROJECT"
+  | "MANAGE_MILESTONE_LIFECYCLE"
+  | "MOVE_PROJECT_TO_ACTIVE"
   | "ENTER_CLIENT_PORTAL";
 
 export type AuthorizationDenialReason =

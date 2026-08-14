@@ -8,79 +8,71 @@ import { getApplicationDatabase } from "../../server/database";
 import { logger } from "../../server/observability/logger";
 import { getCurrentActorContext } from "../authorization/server/authorization";
 import { AuthorizationError } from "../authorization/types";
-import { ProjectDomainError } from "./errors";
+import { ProjectDomainError } from "../projects/errors";
 import {
-  assignProjectMember,
-  createDraftProject,
-  deleteEligibleDraftProject,
-  reassignClientApprover,
-  reassignDeliveryManager,
-  removeProjectMember,
-  updateDraftProjectIdentity,
+  activateMilestone,
+  cancelMilestone,
+  completeMilestone,
+  completeMilestoneWithOverride,
+  createMilestoneDraft,
+  moveProjectToActive,
+  publishMilestone,
+  publishProject,
+  reorderMilestones,
+  updateMilestoneDraft,
 } from "./service";
 
-export type ProjectActionResult = Readonly<{
+export type MilestoneActionResult = Readonly<{
   ok: boolean;
   status: string;
   projectId?: string;
-  rowVersion?: number;
+  projectRowVersion?: number;
+  milestoneId?: string;
+  milestoneRowVersion?: number;
+  activeMilestoneId?: string;
 }>;
 
 const uuid = z.string().uuid();
 const rowVersion = z.number().int().positive();
 const idempotencyKey = z.string().trim().min(8).max(160);
+const optionalDate = z.string().trim().nullable().optional();
 
 const createSchema = z.object({
-  workspaceId: uuid,
-  clientOrganizationId: uuid,
-  title: z.string().trim().min(1).max(240),
-  deliveryManagerUserId: uuid,
-  idempotencyKey,
-});
-
-const identitySchema = z.object({
   projectId: uuid,
   title: z.string().trim().min(1).max(240),
-  clientSummary: z.string().max(5000).nullable().optional(),
-  plannedStartDate: z.string().nullable().optional(),
-  targetCompletionDate: z.string().nullable().optional(),
-  expectedRowVersion: rowVersion,
+  purpose: z.string().max(5000).nullable().optional(),
+  clientDescription: z.string().max(5000).nullable().optional(),
+  plannedStartDate: optionalDate,
+  plannedEndDate: optionalDate,
+  expectedProjectRowVersion: rowVersion,
   idempotencyKey,
 });
 
-const assignSchema = z.object({
+const updateSchema = createSchema.extend({
+  milestoneId: uuid,
+  expectedMilestoneRowVersion: rowVersion,
+});
+
+const reorderSchema = z.object({
   projectId: uuid,
-  userId: uuid,
-  projectRole: z.enum(["AGENCY_MEMBER", "CLIENT_CONTRIBUTOR"]),
-  expectedRowVersion: rowVersion,
+  orderedMilestoneIds: z.array(uuid).min(1),
+  expectedProjectRowVersion: rowVersion,
   idempotencyKey,
 });
 
-const removeSchema = z.object({
+const projectCommandSchema = z.object({
   projectId: uuid,
-  userId: uuid,
-  expectedRowVersion: rowVersion,
+  expectedProjectRowVersion: rowVersion,
   idempotencyKey,
 });
 
-const deliveryManagerSchema = z.object({
-  projectId: uuid,
-  deliveryManagerUserId: uuid,
-  expectedRowVersion: rowVersion,
-  idempotencyKey,
+const milestoneCommandSchema = projectCommandSchema.extend({
+  milestoneId: uuid,
+  expectedMilestoneRowVersion: rowVersion,
 });
 
-const clientApproverSchema = z.object({
-  projectId: uuid,
-  clientApproverUserId: uuid,
-  expectedRowVersion: rowVersion,
-  idempotencyKey,
-});
-
-const deleteSchema = z.object({
-  projectId: uuid,
-  expectedRowVersion: rowVersion,
-  idempotencyKey,
+const overrideSchema = milestoneCommandSchema.extend({
+  reason: z.string().trim().min(1).max(5000),
 });
 
 async function currentActor() {
@@ -92,7 +84,7 @@ async function currentActor() {
   return { actor, database };
 }
 
-function failureFrom(error: unknown): ProjectActionResult {
+function failureFrom(error: unknown): MilestoneActionResult {
   if (error instanceof AuthorizationError) {
     return { ok: false, status: "forbidden" };
   }
@@ -102,8 +94,7 @@ function failureFrom(error: unknown): ProjectActionResult {
       status: error.code.toLowerCase().replaceAll("_", "-"),
     };
   }
-
-  logger.error("project.action_failed");
+  logger.error("milestone.action_failed");
   return { ok: false, status: "service-error" };
 }
 
@@ -114,165 +105,159 @@ function revalidateProject(projectId: string): void {
   revalidatePath(`/agency/projects/${projectId}/setup`);
   revalidatePath(`/agency/projects/${projectId}/delivery`);
   revalidatePath(`/agency/projects/${projectId}/settings`);
-  revalidatePath(`/agency/projects/${projectId}/settings/people`);
-  revalidatePath(`/agency/projects/${projectId}/settings/lifecycle`);
-  revalidatePath("/agency/clients");
 }
 
-export async function createDraftProjectAction(
+export async function createMilestoneDraftAction(
   input: unknown,
-): Promise<ProjectActionResult> {
+): Promise<MilestoneActionResult> {
   const parsed = createSchema.safeParse(input);
   if (!parsed.success) return { ok: false, status: "invalid-request" };
-
   const { actor, database } = await currentActor();
   if (!actor) return { ok: false, status: "authentication-required" };
-
   try {
-    const result = await createDraftProject({
+    const result = await createMilestoneDraft({
       database,
       actor,
       ...parsed.data,
     });
     revalidateProject(result.projectId);
-    return {
-      ok: true,
-      status: "created",
-      projectId: result.projectId,
-      rowVersion: result.rowVersion,
-    };
+    return { ok: true, status: "milestone-created", ...result };
   } catch (error) {
     return failureFrom(error);
   }
 }
 
-export async function updateDraftProjectIdentityAction(
+export async function updateMilestoneDraftAction(
   input: unknown,
-): Promise<ProjectActionResult> {
-  const parsed = identitySchema.safeParse(input);
+): Promise<MilestoneActionResult> {
+  const parsed = updateSchema.safeParse(input);
   if (!parsed.success) return { ok: false, status: "invalid-request" };
-
   const { actor, database } = await currentActor();
   if (!actor) return { ok: false, status: "authentication-required" };
-
   try {
-    const result = await updateDraftProjectIdentity({
+    const result = await updateMilestoneDraft({
       database,
       actor,
       ...parsed.data,
     });
     revalidateProject(result.projectId);
-    return { ok: true, status: "saved", ...result };
+    return { ok: true, status: "milestone-saved", ...result };
   } catch (error) {
     return failureFrom(error);
   }
 }
 
-export async function assignProjectMemberAction(
+export async function reorderMilestonesAction(
   input: unknown,
-): Promise<ProjectActionResult> {
-  const parsed = assignSchema.safeParse(input);
+): Promise<MilestoneActionResult> {
+  const parsed = reorderSchema.safeParse(input);
   if (!parsed.success) return { ok: false, status: "invalid-request" };
-
   const { actor, database } = await currentActor();
   if (!actor) return { ok: false, status: "authentication-required" };
-
   try {
-    const result = await assignProjectMember({
-      database,
-      actor,
-      ...parsed.data,
-    });
+    const result = await reorderMilestones({ database, actor, ...parsed.data });
     revalidateProject(result.projectId);
-    return { ok: true, status: "member-assigned", ...result };
+    return { ok: true, status: "milestones-reordered", ...result };
   } catch (error) {
     return failureFrom(error);
   }
 }
 
-export async function removeProjectMemberAction(
+export async function publishProjectAction(
   input: unknown,
-): Promise<ProjectActionResult> {
-  const parsed = removeSchema.safeParse(input);
+): Promise<MilestoneActionResult> {
+  const parsed = projectCommandSchema.safeParse(input);
   if (!parsed.success) return { ok: false, status: "invalid-request" };
-
   const { actor, database } = await currentActor();
   if (!actor) return { ok: false, status: "authentication-required" };
-
   try {
-    const result = await removeProjectMember({
-      database,
-      actor,
-      ...parsed.data,
-    });
+    const result = await publishProject({ database, actor, ...parsed.data });
     revalidateProject(result.projectId);
-    return { ok: true, status: "member-removed", ...result };
+    return { ok: true, status: "project-published", ...result };
   } catch (error) {
     return failureFrom(error);
   }
 }
 
-export async function reassignDeliveryManagerAction(
+async function runMilestoneCommand(
   input: unknown,
-): Promise<ProjectActionResult> {
-  const parsed = deliveryManagerSchema.safeParse(input);
+  command:
+    | typeof publishMilestone
+    | typeof activateMilestone
+    | typeof completeMilestone
+    | typeof cancelMilestone,
+  successStatus: string,
+): Promise<MilestoneActionResult> {
+  const parsed = milestoneCommandSchema.safeParse(input);
   if (!parsed.success) return { ok: false, status: "invalid-request" };
-
   const { actor, database } = await currentActor();
   if (!actor) return { ok: false, status: "authentication-required" };
-
   try {
-    const result = await reassignDeliveryManager({
-      database,
-      actor,
-      ...parsed.data,
-    });
+    const result = await command({ database, actor, ...parsed.data });
     revalidateProject(result.projectId);
-    return { ok: true, status: "delivery-manager-updated", ...result };
+    revalidatePath(
+      `/agency/projects/${result.projectId}/delivery/milestones/${result.milestoneId}`,
+    );
+    return { ok: true, status: successStatus, ...result };
   } catch (error) {
     return failureFrom(error);
   }
 }
 
-export async function reassignClientApproverAction(
-  input: unknown,
-): Promise<ProjectActionResult> {
-  const parsed = clientApproverSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, status: "invalid-request" };
+export async function publishMilestoneAction(input: unknown) {
+  return runMilestoneCommand(input, publishMilestone, "milestone-published");
+}
 
+export async function activateMilestoneAction(input: unknown) {
+  return runMilestoneCommand(input, activateMilestone, "milestone-activated");
+}
+
+export async function completeMilestoneAction(input: unknown) {
+  return runMilestoneCommand(input, completeMilestone, "milestone-completed");
+}
+
+export async function cancelMilestoneAction(input: unknown) {
+  return runMilestoneCommand(input, cancelMilestone, "milestone-cancelled");
+}
+
+export async function completeMilestoneWithOverrideAction(
+  input: unknown,
+): Promise<MilestoneActionResult> {
+  const parsed = overrideSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, status: "invalid-request" };
   const { actor, database } = await currentActor();
   if (!actor) return { ok: false, status: "authentication-required" };
-
   try {
-    const result = await reassignClientApprover({
+    const result = await completeMilestoneWithOverride({
       database,
       actor,
       ...parsed.data,
     });
     revalidateProject(result.projectId);
-    return { ok: true, status: "client-approver-updated", ...result };
+    revalidatePath(
+      `/agency/projects/${result.projectId}/delivery/milestones/${result.milestoneId}`,
+    );
+    return { ok: true, status: "milestone-completed-with-override", ...result };
   } catch (error) {
     return failureFrom(error);
   }
 }
 
-export async function deleteDraftProjectAction(
+export async function moveProjectToActiveAction(
   input: unknown,
-): Promise<ProjectActionResult> {
-  const parsed = deleteSchema.safeParse(input);
+): Promise<MilestoneActionResult> {
+  const parsed = projectCommandSchema.safeParse(input);
   if (!parsed.success) return { ok: false, status: "invalid-request" };
-
   const { actor, database } = await currentActor();
   if (!actor) return { ok: false, status: "authentication-required" };
-
   try {
-    const result = await deleteEligibleDraftProject({
+    const result = await moveProjectToActive({
       database,
       actor,
       ...parsed.data,
     });
     revalidateProject(result.projectId);
-    return { ok: true, status: "deleted", projectId: result.projectId };
+    return { ok: true, status: "project-active", ...result };
   } catch (error) {
     return failureFrom(error);
   }

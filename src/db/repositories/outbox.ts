@@ -92,9 +92,10 @@ export async function claimOutboxEvents(
     limit: number;
     leaseMs: number;
     now?: Date;
+    eventTypes?: readonly string[];
   }>,
 ): Promise<readonly ClaimedOutboxEvent[]> {
-  if (options.limit < 1) {
+  if (options.limit < 1 || options.eventTypes?.length === 0) {
     return [];
   }
 
@@ -109,6 +110,7 @@ export async function claimOutboxEvents(
             AND failed_at IS NULL
             AND available_at <= $1
             AND (lock_expires_at IS NULL OR lock_expires_at <= $1)
+            AND ($5::text[] IS NULL OR event_type = ANY($5::text[]))
           ORDER BY available_at, created_at
           FOR UPDATE SKIP LOCKED
           LIMIT $2
@@ -132,7 +134,13 @@ export async function claimOutboxEvents(
                 event.locked_at,
                 event.locked_by,
                 event.lock_expires_at`,
-      [now, options.limit, options.workerId, lockExpiresAt],
+      [
+        now,
+        options.limit,
+        options.workerId,
+        lockExpiresAt,
+        options.eventTypes ? [...options.eventTypes] : null,
+      ],
     );
 
     return result.rows.map(mapClaimedRow);

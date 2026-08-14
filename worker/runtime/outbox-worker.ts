@@ -151,6 +151,7 @@ export async function runOutboxWorker(
       limit: batchSize,
       leaseMs,
       now: options.clock.now(),
+      eventTypes: options.registry.names(),
     });
 
     if (claimed.length === 0) {

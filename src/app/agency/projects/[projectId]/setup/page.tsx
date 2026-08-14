@@ -4,7 +4,11 @@ import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
 
 import { SessionRefresh } from "../../../../../modules/auth/components/session-refresh";
+import { MilestonePlanEditor } from "../../../../../modules/milestones/components/milestone-plan-editor";
+import { getAgencyMilestonePlan } from "../../../../../modules/milestones/queries";
+import { AgencyProjectNavigation } from "../../../../../modules/projects/components/agency-project-navigation";
 import { ProjectGeneralSettings } from "../../../../../modules/projects/components/project-general-settings";
+import { ProjectPublicationPanel } from "../../../../../modules/projects/components/project-publication-panel";
 import {
   getAgencyProjectDetail,
   getProjectSettingsCandidates,
@@ -41,14 +45,16 @@ export default async function ProjectSetupPage({
     redirect(`/access?returnTo=${encodeURIComponent(returnTo)}`);
   }
 
-  const projectResult = await getAgencyProjectDetail(
-    database,
-    actor,
-    projectId,
-  );
-  if (projectResult.status === "not-found") notFound();
-  if (projectResult.status === "denied") redirect("/access-denied");
+  const [projectResult, planResult] = await Promise.all([
+    getAgencyProjectDetail(database, actor, projectId),
+    getAgencyMilestonePlan(database, actor, projectId),
+  ]);
+  if (projectResult.status === "not-found" || planResult.status === "not-found")
+    notFound();
+  if (projectResult.status === "denied" || planResult.status === "denied")
+    redirect("/access-denied");
   const { detail } = projectResult;
+  const { plan } = planResult;
 
   if (requestedWorkspaceId && requestedWorkspaceId !== detail.workspaceId) {
     notFound();
@@ -63,20 +69,31 @@ export default async function ProjectSetupPage({
   if (candidatesResult.status === "denied") redirect("/access-denied");
   if (detail.lifecycle !== "DRAFT") {
     redirect(
-      `/agency/projects/${projectId}/settings?workspaceId=${encodeURIComponent(detail.workspaceId)}`,
+      `/agency/projects/${projectId}?workspaceId=${encodeURIComponent(detail.workspaceId)}`,
     );
   }
 
+  const deliveryManagerEligible = candidatesResult.candidates.agency.some(
+    (candidate) => candidate.userId === detail.deliveryManagerUserId,
+  );
+  const clientApproverEligible = candidatesResult.candidates.client.some(
+    (candidate) => candidate.userId === detail.clientApproverUserId,
+  );
   const checks = [
     { label: "Minimal Draft created", complete: true },
-    { label: "Client-facing summary", complete: Boolean(detail.clientSummary) },
+    {
+      label: "Client-facing summary",
+      complete: Boolean(detail.clientSummary?.trim()),
+    },
     {
       label: "Target completion",
       complete: Boolean(detail.targetCompletionDate),
     },
+    { label: "Delivery Manager", complete: deliveryManagerEligible },
+    { label: "Client Approver", complete: clientApproverEligible },
     {
-      label: "Client Approver",
-      complete: Boolean(detail.clientApproverUserId),
+      label: "Milestone plan",
+      complete: plan.milestones.length > 0,
     },
   ] as const;
   const completeCount = checks.filter((item) => item.complete).length;
@@ -110,29 +127,13 @@ export default async function ProjectSetupPage({
         </span>
       </header>
 
-      <nav className="ops-project-settings-nav" aria-label="Project settings">
-        <Link
-          aria-current="page"
-          href={`/agency/projects/${projectId}/setup?workspaceId=${detail.workspaceId}`}
-        >
-          Setup
-        </Link>
-        <Link
-          href={`/agency/projects/${projectId}/settings?workspaceId=${detail.workspaceId}`}
-        >
-          General
-        </Link>
-        <Link
-          href={`/agency/projects/${projectId}/settings/people?workspaceId=${detail.workspaceId}`}
-        >
-          People & Access
-        </Link>
-        <Link
-          href={`/agency/projects/${projectId}/settings/lifecycle?workspaceId=${detail.workspaceId}`}
-        >
-          Lifecycle
-        </Link>
-      </nav>
+      <AgencyProjectNavigation
+        projectId={projectId}
+        workspaceId={detail.workspaceId}
+        lifecycle={detail.lifecycle}
+        current="setup"
+        canManageSettings={true}
+      />
 
       <section className="ops-project-readiness">
         <div className="ops-section-heading">
@@ -169,6 +170,65 @@ export default async function ProjectSetupPage({
           candidates={candidatesResult.candidates}
         />
       </section>
+
+      <section className="ops-project-settings-card ops-setup-milestones-card">
+        <div className="ops-section-heading">
+          <div>
+            <p className="ops-section-label">Delivery plan</p>
+            <h2>Milestone sequence</h2>
+          </div>
+          <Link
+            className="ops-quiet-action"
+            href={`/agency/projects/${projectId}/delivery?workspaceId=${detail.workspaceId}`}
+          >
+            Open full Delivery Plan
+          </Link>
+        </div>
+        <p className="ops-section-intro">
+          At least one Milestone is required. The first position becomes Active
+          when this Project is published.
+        </p>
+        <MilestonePlanEditor
+          projectId={projectId}
+          workspaceId={detail.workspaceId}
+          projectRowVersion={detail.rowVersion}
+          projectLifecycle={detail.lifecycle}
+          milestones={plan.milestones}
+          permissions={plan.permissions}
+        />
+      </section>
+
+      <section className="ops-project-settings-card ops-client-preview-card">
+        <div className="ops-section-heading">
+          <div>
+            <p className="ops-section-label">Client Portal preview</p>
+            <h2>Publication context</h2>
+          </div>
+          <span className="ops-section-meta">Preview boundary</span>
+        </div>
+        <div className="ops-client-preview-surface">
+          <p className="ops-section-label">{detail.clientOrganizationName}</p>
+          <h3>{detail.title}</h3>
+          <p>{detail.clientSummary ?? "Client-facing summary not set."}</p>
+          <div>
+            <span>Target {detail.targetCompletionDate ?? "not set"}</span>
+            <span>•</span>
+            <span>{plan.milestones.length} planned Milestones</span>
+          </div>
+          {plan.milestones[0] ? (
+            <strong>First Milestone: {plan.milestones[0].title}</strong>
+          ) : null}
+        </div>
+      </section>
+
+      <ProjectPublicationPanel
+        projectId={projectId}
+        workspaceId={detail.workspaceId}
+        rowVersion={detail.rowVersion}
+        checks={checks.filter(
+          (check) => check.label !== "Minimal Draft created",
+        )}
+      />
     </main>
   );
 }

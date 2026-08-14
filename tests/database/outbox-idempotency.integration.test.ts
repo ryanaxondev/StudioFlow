@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 
+import { eq } from "drizzle-orm";
 import { Client } from "pg";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
@@ -12,7 +13,7 @@ import {
   claimOutboxEvents,
   insertOutboxEvent,
 } from "../../src/db/repositories/outbox";
-import { users } from "../../src/db/schema";
+import { idempotencyRecords, users } from "../../src/db/schema";
 import { withTransaction } from "../../src/db/transactions";
 import { resetPublicSchemaData } from "../helpers/database-reset";
 import {
@@ -86,7 +87,7 @@ describe("transactional outbox and idempotency", () => {
       value: 42,
       nested: { b: 2, a: 1 },
     });
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+    const ttlMs = 60 * 60 * 1000;
 
     await withTransaction(testDatabase.database, async ({ db }) => {
       const reservation = await reserveIdempotencyRecord(db, {
@@ -94,7 +95,7 @@ describe("transactional outbox and idempotency", () => {
         commandType: "test.command",
         idempotencyKey: "idem-001",
         requestFingerprint: fingerprint,
-        expiresAt,
+        ttlMs,
       });
       expect(reservation.kind).toBe("new");
 
@@ -114,7 +115,7 @@ describe("transactional outbox and idempotency", () => {
           nested: { a: 1, b: 2 },
           value: 42,
         }),
-        expiresAt,
+        ttlMs,
       }),
     );
 
@@ -124,12 +125,43 @@ describe("transactional outbox and idempotency", () => {
     });
   });
 
+  it("anchors idempotency retention to PostgreSQL transaction time", async () => {
+    const [user] = await testDatabase.database.db
+      .insert(users)
+      .values({ name: "Clock Actor", email: "clock-actor@example.com" })
+      .returning({ id: users.id });
+    const ttlMs = 60 * 60 * 1000;
+
+    await withTransaction(testDatabase.database, async ({ db }) => {
+      await reserveIdempotencyRecord(db, {
+        actorId: user!.id,
+        commandType: "test.clock",
+        idempotencyKey: "idem-clock",
+        requestFingerprint: createRequestFingerprint({ value: "clock" }),
+        ttlMs,
+      });
+    });
+
+    const rows = await testDatabase.database.db
+      .select({
+        createdAt: idempotencyRecords.createdAt,
+        expiresAt: idempotencyRecords.expiresAt,
+      })
+      .from(idempotencyRecords)
+      .where(eq(idempotencyRecords.idempotencyKey, "idem-clock"));
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.expiresAt.getTime() - rows[0]!.createdAt.getTime()).toBe(
+      ttlMs,
+    );
+  });
+
   it("returns conflict when an idempotency key is reused with another payload", async () => {
     const [user] = await testDatabase.database.db
       .insert(users)
       .values({ name: "Conflict Actor", email: "conflict@example.com" })
       .returning({ id: users.id });
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+    const ttlMs = 60 * 60 * 1000;
 
     await withTransaction(testDatabase.database, async ({ db }) => {
       const reservation = await reserveIdempotencyRecord(db, {
@@ -137,7 +169,7 @@ describe("transactional outbox and idempotency", () => {
         commandType: "test.command",
         idempotencyKey: "idem-conflict",
         requestFingerprint: createRequestFingerprint({ value: 1 }),
-        expiresAt,
+        ttlMs,
       });
       if (reservation.kind !== "new") {
         throw new Error("Expected a new idempotency reservation.");
@@ -153,7 +185,7 @@ describe("transactional outbox and idempotency", () => {
         commandType: "test.command",
         idempotencyKey: "idem-conflict",
         requestFingerprint: createRequestFingerprint({ value: 2 }),
-        expiresAt,
+        ttlMs,
       }),
     );
 

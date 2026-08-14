@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 
 import type { TransactionDatabase } from "../transactions";
 import { idempotencyRecords, type JsonObject } from "../schema";
@@ -53,9 +53,13 @@ export async function reserveIdempotencyRecord(
     commandType: string;
     idempotencyKey: string;
     requestFingerprint: string;
-    expiresAt: Date;
+    ttlMs: number;
   }>,
 ): Promise<IdempotencyReservation> {
+  if (!Number.isSafeInteger(input.ttlMs) || input.ttlMs <= 0) {
+    throw new TypeError("Idempotency TTL must be a positive integer.");
+  }
+
   const inserted = await db
     .insert(idempotencyRecords)
     .values({
@@ -63,7 +67,7 @@ export async function reserveIdempotencyRecord(
       commandType: input.commandType,
       idempotencyKey: input.idempotencyKey,
       requestFingerprint: input.requestFingerprint,
-      expiresAt: input.expiresAt,
+      expiresAt: sql`CURRENT_TIMESTAMP + (${input.ttlMs} * INTERVAL '1 millisecond')`,
     })
     .onConflictDoNothing({
       target: [

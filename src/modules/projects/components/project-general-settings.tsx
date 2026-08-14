@@ -31,6 +31,7 @@ export function ProjectGeneralSettings({
   );
   const [pending, setPending] = useState(false);
   const [status, setStatus] = useState("");
+  const effectiveRowVersion = Math.max(rowVersion, detail.rowVersion);
 
   async function saveIdentity(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -45,7 +46,7 @@ export function ProjectGeneralSettings({
       plannedStartDate: String(form.get("plannedStartDate") ?? "") || null,
       targetCompletionDate:
         String(form.get("targetCompletionDate") ?? "") || null,
-      expectedRowVersion: rowVersion,
+      expectedRowVersion: effectiveRowVersion,
       idempotencyKey: crypto.randomUUID(),
     });
 
@@ -66,7 +67,7 @@ export function ProjectGeneralSettings({
     const result = await reassignDeliveryManagerAction({
       projectId: detail.projectId,
       deliveryManagerUserId: deliveryManagerSelection,
-      expectedRowVersion: rowVersion,
+      expectedRowVersion: effectiveRowVersion,
       idempotencyKey: crypto.randomUUID(),
     });
     if (result.ok && result.rowVersion) {
@@ -94,7 +95,7 @@ export function ProjectGeneralSettings({
     const result = await reassignClientApproverAction({
       projectId: detail.projectId,
       clientApproverUserId: clientApproverSelection,
-      expectedRowVersion: rowVersion,
+      expectedRowVersion: effectiveRowVersion,
       idempotencyKey: crypto.randomUUID(),
     });
     if (result.ok && result.rowVersion) {

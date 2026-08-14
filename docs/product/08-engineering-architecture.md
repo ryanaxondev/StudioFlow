@@ -1718,6 +1718,7 @@ Key fields:
 - `planned_start_date`
 - `planned_end_date`
 - `state`
+- `published_at`
 - `activated_at`
 - `completed_at`
 - `cancelled_at`
@@ -1728,6 +1729,8 @@ Constraints:
 
 - Unique Project position
 - Partial unique index: one `ACTIVE` Milestone per Project
+
+Milestone publication and lifecycle are orthogonal. `published_at IS NULL` means an agency-only Milestone Draft; lifecycle still begins at `PLANNED`. Publishing a Project publishes its current Milestone plan atomically and activates the first Milestone. A later Milestone Draft may be published independently while remaining `PLANNED` until activation.
 
 ### 22.2 `client_actions`
 
@@ -2116,6 +2119,16 @@ PLANNED → ACTIVE → COMPLETED
 PLANNED | ACTIVE → CANCELLED
 ```
 
+Publication is a separate visibility boundary, not another lifecycle state:
+
+```text
+Agency-only Draft: published_at = NULL, state = PLANNED
+Published upcoming: published_at != NULL, state = PLANNED
+Current: published_at != NULL, state = ACTIVE
+```
+
+A non-`PLANNED` Milestone must already be published.
+
 ### 27.3 Client Action
 
 ```text
@@ -2175,8 +2188,13 @@ DRAFT → PUBLISHED → WITHDRAWN
 
 | Command                | Required Guard                                         | Primary Writes                                                                               | Async Side Effect              |
 | ---------------------- | ------------------------------------------------------ | -------------------------------------------------------------------------------------------- | ------------------------------ |
-| Publish Project        | Draft complete; required roles; at least one Milestone | Project Onboarding; first Milestone Active; Activity                                         | Invitations / email            |
-| Publish Client Action  | Authorized; Draft; valid assignee/due date             | Action Open; blocking obligation if required; Activity                                       | Assignment email and reminders |
+| Publish Project        | Draft complete; required roles; at least one Milestone | Project Onboarding; publish current Milestone plan; first Milestone Active; Activity           | Project-publication intent      |
+| Publish Milestone      | Manager authority; unpublished Planned Milestone       | `published_at`; Activity                                                                       | None in M10                     |
+| Activate Milestone     | Manager authority; published Planned; no Active peer   | Milestone Active; Activity                                                                     | None in M10                     |
+| Complete Milestone     | Manager authority; Active; completion criteria pass     | Milestone Completed; Activity                                                                  | None in M10                     |
+| Cancel Milestone       | Manager authority; published Planned or Active          | Milestone Cancelled; Activity                                                                  | None in M10                     |
+| Move Project Active    | Onboarding; manager authority; activation criteria pass | Project Active; Activity                                                                       | None in M10                     |
+| Publish Client Action  | Authorized; Draft; valid assignee/due date             | Action Open; blocking obligation if required; Activity                                         | Assignment email and reminders |
 | Complete Client Action | Assigned actor; Open                                   | Submission; Action Completed; close obligation; Activity                                     | Completion email               |
 | Reopen Client Action   | Agency authority; Completed                            | New open state; new obligation when blocking; Activity                                       | Reopen email                   |
 | Publish Version        | Authorized; processed asset; due date                  | Version Awaiting Decision; current Version; obligation; Activity                             | Review email                   |
@@ -2302,6 +2320,8 @@ Binding commands accept a generated idempotency key.
 Retry with same payload returns the prior result.
 
 Retry with a different payload returns conflict.
+
+Idempotency retention uses PostgreSQL transaction time. Product/domain timestamps may use the injectable Clock, but an idempotency reservation stores `Created at` and derives `Expires at` from one database time source plus the configured TTL. This avoids cross-instance clock skew and keeps fixed Demo/Test clocks from changing operational retry retention.
 
 ### 30.5 Optimistic UI Policy
 
@@ -3100,6 +3120,8 @@ Workers claim batches using:
 ```text
 FOR UPDATE SKIP LOCKED
 ```
+
+A Worker claims only event types currently registered in its processor registry. This is part of the Outbox contract, not a temporary test behavior. Domain milestones may persist future Product-notification intents before M19 wires their delivery processors; those rows remain pending, unlocked, and with no attempt consumed until a matching processor is registered. The ready-claim index includes `event_type` ahead of availability ordering so intentionally deferred rows do not become a polling hot path. A missing processor after an eligible claim remains a defensive misconfiguration path, not the normal deferral mechanism.
 
 ### 43.4 Processing
 
